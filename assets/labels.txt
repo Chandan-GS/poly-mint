@@ -1,0 +1,7 @@
+1-PET
+2-HDPE
+3-PVC
+4-LDPE
+5-PP
+6-PS
+7-Other

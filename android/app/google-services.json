@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "560821610298",
+    "project_id": "poly-mint",
+    "storage_bucket": "poly-mint.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:560821610298:android:45c782670aa3c44489d203",
+        "android_client_info": {
+          "package_name": "com.example.poly_mint"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUy8J3QJDneUTx-3XD8qHHgy3M3nUqwHQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
