@@ -7,7 +7,11 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Poly Mint</string>
+	<string>PolyMint</string>
+	<key>NSCameraUsageDescription</key>
+	<string>PolyMint uses the camera to identify the type of plastic you are recycling.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>PolyMint records the approximate location of a recovered batch to verify where recycling happened.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

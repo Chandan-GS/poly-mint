@@ -1,0 +1,72 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+
+/// Thin, typed wrapper over [SharedPreferences]. Owns everything that must
+/// survive an app restart: settings, the anonymous user id, the onboarding
+/// flag and the offline transaction queue.
+class PreferencesService {
+  PreferencesService(this._prefs);
+
+  final SharedPreferences _prefs;
+
+  static const _kOnboarded = 'onboarding_complete';
+  static const _kThemeMode = 'theme_mode';
+  static const _kUserId = 'user_id';
+  static const _kDisplayName = 'display_name';
+  static const _kHighAccuracy = 'high_accuracy_mode';
+  static const _kQueue = 'offline_queue';
+
+  static Future<PreferencesService> create() async =>
+      PreferencesService(await SharedPreferences.getInstance());
+
+  // --- Onboarding -----------------------------------------------------------
+  bool get hasOnboarded => _prefs.getBool(_kOnboarded) ?? false;
+  Future<void> setOnboarded() => _prefs.setBool(_kOnboarded, true);
+
+  // --- Theme ('system' | 'light' | 'dark') ----------------------------------
+  String get themeMode => _prefs.getString(_kThemeMode) ?? 'system';
+  Future<void> setThemeMode(String mode) => _prefs.setString(_kThemeMode, mode);
+
+  // --- Model accuracy toggle (multi-frame averaging) ------------------------
+  bool get highAccuracyMode => _prefs.getBool(_kHighAccuracy) ?? true;
+  Future<void> setHighAccuracyMode(bool v) =>
+      _prefs.setBool(_kHighAccuracy, v);
+
+  // --- Identity -------------------------------------------------------------
+  /// Stable anonymous id generated once per install. Ties transactions to a
+  /// user without requiring sign-in.
+  String get userId {
+    var id = _prefs.getString(_kUserId);
+    if (id == null || id.isEmpty) {
+      id = const Uuid().v4();
+      _prefs.setString(_kUserId, id);
+    }
+    return id;
+  }
+
+  String get displayName =>
+      _prefs.getString(_kDisplayName) ?? 'Eco Contributor';
+  Future<void> setDisplayName(String name) =>
+      _prefs.setString(_kDisplayName, name.trim());
+
+  // --- Offline queue (list of flat JSON maps) -------------------------------
+  List<Map<String, dynamic>> get queuedTransactions {
+    final raw = _prefs.getStringList(_kQueue) ?? const [];
+    return raw
+        .map((s) => jsonDecode(s) as Map<String, dynamic>)
+        .toList(growable: false);
+  }
+
+  Future<void> saveQueue(List<Map<String, dynamic>> items) {
+    return _prefs.setStringList(
+      _kQueue,
+      items.map((m) => jsonEncode(m)).toList(),
+    );
+  }
+
+  Future<void> enqueue(Map<String, dynamic> tx) async {
+    final items = queuedTransactions.toList()..add(tx);
+    await saveQueue(items);
+  }
+}

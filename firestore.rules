@@ -1,8 +1,31 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+
+    // Public circular-economy ledger. Anyone can read aggregate impact data,
+    // but writes are append-only and schema-validated so the ledger can't be
+    // tampered with or deleted from the client.
+    match /plastic_transactions/{txId} {
+      allow read: if true;
+
+      allow create: if isValidTransaction(request.resource.data);
+
+      // Ledger entries are immutable once written.
+      allow update, delete: if false;
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll([
+               'user_id', 'polymer_type', 'confidence',
+               'weight_kg', 'credits_minted', 'status'
+             ])
+             && data.user_id is string
+             && data.polymer_type is string
+             && data.weight_kg is number && data.weight_kg > 0
+             && data.weight_kg < 100000
+             && data.confidence is number
+             && data.confidence >= 0 && data.confidence <= 1
+             && data.credits_minted is number && data.credits_minted >= 0;
     }
   }
 }

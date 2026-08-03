@@ -1,10 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Required for fetching location in ValidationAndMintingScreen -->
+    <!-- Syncing the ledger to Firestore. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- On-device polymer scanning. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- Geo-stamping recovered batches. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
-        android:label="poly_mint"
+        android:label="PolyMint"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

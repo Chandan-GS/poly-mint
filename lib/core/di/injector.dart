@@ -1,0 +1,31 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get_it/get_it.dart';
+
+import '../../data/services/connectivity_service.dart';
+import '../../data/services/location_service.dart';
+import '../../data/services/ml_service.dart';
+import '../../data/services/preferences_service.dart';
+import '../../data/services/transaction_repository.dart';
+
+final GetIt sl = GetIt.instance;
+
+/// Wires up singletons once at startup. Blocs/Cubits are created per-screen and
+/// pull their dependencies from here.
+Future<void> configureDependencies() async {
+  // Services with async init.
+  final prefs = await PreferencesService.create();
+  sl.registerSingleton<PreferencesService>(prefs);
+
+  sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
+  sl.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
+  sl.registerLazySingleton<LocationService>(() => LocationService());
+  sl.registerLazySingleton<MlService>(() => MlService());
+
+  sl.registerLazySingleton<TransactionRepository>(
+    () => TransactionRepository(
+      firestore: sl(),
+      prefs: sl(),
+      connectivity: sl(),
+    ),
+  );
+}
