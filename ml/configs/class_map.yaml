@@ -1,0 +1,60 @@
+# Maps raw labels from public datasets -> PolyMint's 7 polymer classes.
+# Used by src/prepare_dataset.py when ingesting an ImageFolder-style source
+# (a directory with one sub-folder per raw label).
+#
+# Keys are lower-cased source folder names; values are the target PolyMint class.
+# Anything not listed falls through to "Other" (configurable via --default-class).
+#
+# NOTE: Most open trash datasets (TrashNet, TACO, RealWaste) label by *object /
+# material category*, not resin code. The mapping below is a pragmatic bootstrap
+# so you can train a v0 fast. The real accuracy comes from the self-collected
+# scrapyard images (domain adaptation) + active-learning relabels — treat these
+# public-dataset mappings as a warm start, not ground truth.
+
+map:
+  # --- TrashNet (folder-per-material) ---
+  plastic: Other            # generic mixed plastic -> Other until re-labelled by resin code
+  # cardboard/paper/glass/metal/trash are non-plastic -> drop (see drop list)
+
+  # --- RealWaste / TACO style categories ---
+  plastic_bottle: PET
+  water_bottle: PET
+  soda_bottle: PET
+  pet: PET
+  pet_bottle: PET
+  clear_plastic_bottle: PET
+
+  hdpe: HDPE
+  milk_jug: HDPE
+  detergent_bottle: HDPE
+  shampoo_bottle: HDPE
+  plastic_jug: HDPE
+
+  pvc: PVC
+  pipe: PVC
+
+  ldpe: LDPE
+  plastic_bag: LDPE
+  plastic_film: LDPE
+  grocery_bag: LDPE
+  cling_film: LDPE
+
+  pp: PP
+  bottle_cap: PP
+  cap: PP
+  food_container: PP
+  yogurt_container: PP
+  straw: PP
+
+  ps: PS
+  styrofoam: PS
+  foam_cup: PS
+  disposable_cup: PS
+  polystyrene: PS
+
+  other_plastic: Other
+  multilayer: Other
+  mixed_plastic: Other
+
+# Raw labels to skip entirely (non-plastic materials in trash datasets).
+drop: [cardboard, paper, glass, metal, trash, organic, e-waste, textile, wood, battery]

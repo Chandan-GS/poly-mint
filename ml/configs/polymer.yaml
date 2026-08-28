@@ -1,0 +1,29 @@
+# PolyMint — polymer classifier (7-class) training config
+# Consumed by src/train.py
+
+name: polymer
+task: classify
+
+# Backbone: nano = smallest/fastest, best for on-phone <1s latency.
+# Bump to yolov8s-cls.pt only if accuracy < target and latency budget allows.
+model: yolov8n-cls.pt
+
+# Dataset root produced by src/prepare_dataset.py.
+# Must contain train/ val/ test/ each with one sub-folder per class.
+data: data/polymer
+
+# The 7 PolyMint polymer classes (order is informational; Ultralytics
+# derives class order alphabetically from the folder names on disk).
+classes: [PET, HDPE, PVC, LDPE, PP, PS, Other]
+
+imgsz: 224
+epochs: 100
+batch: 64
+patience: 20          # early-stop if val doesn't improve for N epochs
+lr0: 0.001
+dropout: 0.1
+device: ""            # "" = auto (mps on Mac / cuda if present / cpu). "cpu" to force.
+workers: 8
+seed: 42
+
+project: runs
