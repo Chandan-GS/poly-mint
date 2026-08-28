@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/di/injector.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_type.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_widgets.dart';
 import '../../../data/models/classification_result.dart';
 import '../../../data/models/polymer_info.dart';
+import '../../../data/models/popp_proof.dart';
 import '../../../data/services/location_service.dart';
 import '../../../data/services/preferences_service.dart';
 import '../../../data/services/transaction_repository.dart';
@@ -13,7 +16,8 @@ import '../cubit/minting_cubit.dart';
 
 class ResultScreen extends StatelessWidget {
   final ClassificationResult result;
-  const ResultScreen({super.key, required this.result});
+  final PoppProof proof;
+  const ResultScreen({super.key, required this.result, required this.proof});
 
   @override
   Widget build(BuildContext context) {
@@ -23,48 +27,51 @@ class ResultScreen extends StatelessWidget {
         repo: sl<TransactionRepository>(),
         location: sl<LocationService>(),
         prefs: sl<PreferencesService>(),
+        weightKg: proof.weightKg,
       ),
-      child: _ResultView(result: result),
+      child: _ResultView(result: result, proof: proof),
     );
   }
 }
 
 class _ResultView extends StatelessWidget {
   final ClassificationResult result;
-  const _ResultView({required this.result});
+  final PoppProof proof;
+  const _ResultView({required this.result, required this.proof});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Verify & mint')),
-      body: BlocListener<MintingCubit, MintingState>(
-        listenWhen: (a, b) => a.status != b.status,
-        listener: (context, state) {
-          if (state.status == MintingStatus.mintedOnline ||
-              state.status == MintingStatus.mintedOffline) {
-            _showSuccess(context, state);
-          } else if (state.status == MintingStatus.error &&
-              state.error != null) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(state.error!)));
-          }
-        },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _ConfidenceCard(result: result),
-            const SizedBox(height: 16),
-            _CandidatePicker(result: result),
-            const SizedBox(height: 16),
-            const _SelectedPolymerCard(),
-            const SizedBox(height: 16),
-            const _WeightInput(),
-            const SizedBox(height: 16),
-            const _CreditPreview(),
-            const SizedBox(height: 24),
-            const _MintButton(),
-            const SizedBox(height: 12),
-          ],
+      body: SafeArea(
+        child: BlocListener<MintingCubit, MintingState>(
+          listenWhen: (a, b) => a.status != b.status,
+          listener: (context, state) {
+            if (state.status == MintingStatus.mintedOnline ||
+                state.status == MintingStatus.mintedOffline) {
+              _showSuccess(context, state);
+            } else if (state.status == MintingStatus.error &&
+                state.error != null) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(state.error!)));
+            }
+          },
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            children: [
+              _ClassificationPanel(result: result),
+              const SizedBox(height: 12),
+              _CandidateChips(result: result),
+              const SizedBox(height: 22),
+              const SectionLabel('Physical check'),
+              _ProofPanel(proof: proof),
+              const SizedBox(height: 22),
+              const SectionLabel('Credit'),
+              const _CreditPanel(),
+              const SizedBox(height: 20),
+              const _MintButton(),
+            ],
+          ),
         ),
       ),
     );
@@ -72,47 +79,43 @@ class _ResultView extends StatelessWidget {
 
   void _showSuccess(BuildContext context, MintingState state) {
     final online = state.status == MintingStatus.mintedOnline;
-    showModalBottomSheet(
+    final scheme = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
       context: context,
       isDismissible: false,
       enableDrag: false,
-      showDragHandle: false,
+      backgroundColor: scheme.surface,
       builder: (_) => Padding(
         padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: const Color(0xFF16A34A).withValues(alpha: 0.14),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check_circle,
-                  color: Color(0xFF16A34A), size: 44),
-            ),
-            const SizedBox(height: 16),
-            Text('${Formatters.credits(state.creditsPreview)} credits minted',
-                style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
+            const StatusTag(label: 'Minted', color: AppColors.accent),
+            const SizedBox(height: 14),
+            Text.rich(TextSpan(
+              text: Formatters.credits(state.creditsPreview),
+              style: AppType.metricL.copyWith(color: scheme.onSurface),
+              children: [
+                TextSpan(
+                    text: '  credits',
+                    style: AppType.body.copyWith(color: scheme.onSurfaceVariant)),
+              ],
+            )),
+            const SizedBox(height: 10),
             Text(
               online
                   ? 'Verified and recorded to the exchange ledger.'
-                  : 'Saved offline — it will sync automatically when you '
-                      'reconnect.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  : 'Saved offline — syncs automatically when you reconnect.',
+              style: AppType.body.copyWith(color: scheme.onSurfaceVariant),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context); // sheet
-                  Navigator.pop(context); // result screen → back to scan
+                  Navigator.pop(context); // back to scan
                 },
                 child: const Text('Done'),
               ),
@@ -124,167 +127,130 @@ class _ResultView extends StatelessWidget {
   }
 }
 
-class _ConfidenceCard extends StatelessWidget {
+class _ClassificationPanel extends StatelessWidget {
   final ClassificationResult result;
-  const _ConfidenceCard({required this.result});
+  const _ClassificationPanel({required this.result});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final confident = result.isConfident;
     final uncertain = result.isUncertain || result.isAmbiguous;
-    final color = uncertain
-        ? const Color(0xFFF59E0B)
-        : confident
-            ? const Color(0xFF16A34A)
-            : scheme.primary;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.auto_awesome, color: color, size: 18),
-                const SizedBox(width: 6),
-                const Text('AI detection',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-                const Spacer(),
-                Text('${result.inferenceTime.inMilliseconds} ms',
-                    style: TextStyle(
-                        fontSize: 11, color: scheme.onSurfaceVariant)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Text(result.polymer.shortName,
-                    style: const TextStyle(
-                        fontSize: 26, fontWeight: FontWeight.w800)),
-                const SizedBox(width: 10),
-                Text(result.polymer.fullName,
-                    style: TextStyle(
-                        fontSize: 12, color: scheme.onSurfaceVariant)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: result.confidence.clamp(0.0, 1.0),
-                minHeight: 8,
-                backgroundColor: color.withValues(alpha: 0.15),
-                valueColor: AlwaysStoppedAnimation(color),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text('${Formatters.percent(result.confidence)} confidence',
-                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
-            if (uncertain) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Row(
+    final barColor = uncertain ? AppColors.review : AppColors.accent;
+    return Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline,
-                        size: 16, color: Color(0xFFF59E0B)),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'The AI isn’t fully sure. Confirm the resin code below '
-                        'or rescan with better lighting.',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
+                    Text('MATERIAL',
+                        style: AppType.label
+                            .copyWith(color: scheme.onSurfaceVariant)),
+                    const SizedBox(height: 6),
+                    Text(result.polymer.shortName,
+                        style: AppType.screenTitle.copyWith(
+                            fontSize: 26, color: scheme.onSurface)),
+                    Text(result.polymer.fullName,
+                        style: AppType.caption
+                            .copyWith(color: scheme.onSurfaceVariant)),
                   ],
                 ),
               ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('SURE',
+                      style: AppType.label
+                          .copyWith(color: scheme.onSurfaceVariant)),
+                  const SizedBox(height: 6),
+                  Text(Formatters.percent(result.confidence),
+                      style: AppType.metricM.copyWith(color: barColor)),
+                ],
+              ),
             ],
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: result.confidence.clamp(0.0, 1.0),
+              minHeight: 4,
+              backgroundColor: scheme.surfaceContainerHighest,
+              color: barColor,
+            ),
+          ),
+          if (uncertain) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Not fully sure — confirm the material below or rescan in better '
+              'light.',
+              style: AppType.caption.copyWith(color: AppColors.review),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _CandidatePicker extends StatelessWidget {
+class _CandidateChips extends StatelessWidget {
   final ClassificationResult result;
-  const _CandidatePicker({required this.result});
+  const _CandidateChips({required this.result});
 
   @override
   Widget build(BuildContext context) {
-    final selected = context.select((MintingCubit c) => c.state.selectedPolymer);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final selected =
+        context.select((MintingCubit c) => c.state.selectedPolymer);
+    final scheme = Theme.of(context).colorScheme;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        Text('Confirm material',
-            style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 13)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final p in result.predictions)
-              ChoiceChip(
-                selected: selected.code == p.polymer.code,
-                onSelected: (_) =>
-                    context.read<MintingCubit>().selectPolymer(p.polymer),
-                avatar: CircleAvatar(
-                  backgroundColor: p.polymer.color,
-                  radius: 9,
-                  child: Text('${p.polymer.resinNumber}',
-                      style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold)),
-                ),
-                label: Text(
-                    '${p.polymer.shortName} · ${Formatters.percent(p.confidence)}'),
-              ),
-            // Manual escape hatch to any resin.
-            ActionChip(
-              avatar: const Icon(Icons.more_horiz, size: 18),
-              label: const Text('Other'),
-              onPressed: () => _showAllPolymers(context),
+        for (final p in result.predictions)
+          _Chip(
+            label:
+                '${p.polymer.shortName} · ${Formatters.percent(p.confidence)}',
+            selected: selected.code == p.polymer.code,
+            onTap: () => context.read<MintingCubit>().selectPolymer(p.polymer),
+          ),
+        InkWell(
+          onTap: () => _showAll(context),
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(
+              border: Border.all(color: scheme.outlineVariant),
+              borderRadius: BorderRadius.circular(4),
             ),
-          ],
+            child: Text('Other…',
+                style: AppType.monoSmall.copyWith(color: scheme.onSurface)),
+          ),
         ),
       ],
     );
   }
 
-  void _showAllPolymers(BuildContext context) {
+  void _showAll(BuildContext context) {
     final cubit = context.read<MintingCubit>();
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
-            const Padding(
-              padding: EdgeInsets.all(8),
-              child: Text('Select resin code',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-            ),
             for (final p in PolymerCatalog.all)
               ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: p.color,
-                  child: Text('${p.resinNumber}',
-                      style: const TextStyle(color: Colors.white)),
-                ),
-                title: Text('${p.shortName} — ${p.fullName}'),
-                subtitle: Text('${p.creditRate} credits/kg'),
+                dense: true,
+                leading: Text(p.resinNumber.toString().padLeft(2, '0'),
+                    style: AppType.monoBody),
+                title: Text('${p.shortName} · ${p.fullName}',
+                    style: AppType.body),
                 onTap: () {
                   cubit.selectPolymer(p);
                   Navigator.pop(context);
@@ -297,137 +263,119 @@ class _CandidatePicker extends StatelessWidget {
   }
 }
 
-class _SelectedPolymerCard extends StatelessWidget {
-  const _SelectedPolymerCard();
+class _Chip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _Chip(
+      {required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final p = context.select((MintingCubit c) => c.state.selectedPolymer);
     final scheme = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(p.fullName,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 15)),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: p.color.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(p.recyclabilityLabel,
-                      style: TextStyle(
-                          color: p.color,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(p.description,
-                style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
-            const SizedBox(height: 12),
-            Text('Prep tips',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: scheme.onSurfaceVariant)),
-            const SizedBox(height: 6),
-            for (final tip in p.tips)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.check, size: 15, color: p.color),
-                    const SizedBox(width: 6),
-                    Expanded(
-                        child: Text(tip,
-                            style: const TextStyle(fontSize: 12.5))),
-                  ],
-                ),
-              ),
-          ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? scheme.onSurface : scheme.surface,
+          border: Border.all(color: scheme.outlineVariant),
+          borderRadius: BorderRadius.circular(4),
         ),
+        child: Text(label,
+            style: AppType.monoSmall.copyWith(
+                color: selected ? scheme.surface : scheme.onSurface)),
       ),
     );
   }
 }
 
-class _WeightInput extends StatelessWidget {
-  const _WeightInput();
+/// The Proof-of-Physical-Presence readout — plain words, mono values.
+class _ProofPanel extends StatelessWidget {
+  final PoppProof proof;
+  const _ProofPanel({required this.proof});
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,3}')),
-      ],
-      onChanged: (v) => context.read<MintingCubit>().setWeight(v),
-      decoration: const InputDecoration(
-        labelText: 'Batch weight',
-        hintText: 'e.g. 2.5',
-        prefixIcon: Icon(Icons.scale),
-        suffixText: 'kg',
+    final scheme = Theme.of(context).colorScheme;
+    Widget row(String k, String v) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          child: Row(children: [
+            Expanded(
+                child: Text(k,
+                    style: AppType.body
+                        .copyWith(color: scheme.onSurfaceVariant))),
+            Text(v, style: AppType.monoBody.copyWith(color: scheme.onSurface)),
+          ]),
+        );
+    return Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Expanded(
+              child: Text(
+                proof.simulated
+                    ? 'Weight and photo matched (simulated)'
+                    : 'Weight and photo matched',
+                style: AppType.bodyStrong.copyWith(color: scheme.onSurface),
+              ),
+            ),
+            const StatusTag(label: 'Verified', color: AppColors.accent),
+          ]),
+          const SizedBox(height: 12),
+          const RowDivider(),
+          const SizedBox(height: 4),
+          row('Weight on scale', '${proof.weightKg.toStringAsFixed(3)} kg'),
+          row('Held steady for',
+              '${(proof.stableWindowMs / 1000).toStringAsFixed(1)} s'),
+          row('Tamper check', proof.sampleHashChain.isEmpty
+              ? '—'
+              : '${proof.sampleHashChain.substring(0, 8)}…'),
+        ],
       ),
     );
   }
 }
 
-class _CreditPreview extends StatelessWidget {
-  const _CreditPreview();
+class _CreditPanel extends StatelessWidget {
+  const _CreditPanel();
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<MintingCubit>().state;
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: scheme.primaryContainer.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return Panel(
+      background: AppColors.accentWash,
+      border: const Color(0xFFCFE3D9),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Credits to mint',
-                    style: TextStyle(
-                        fontSize: 12, color: scheme.onSurfaceVariant)),
-                const SizedBox(height: 4),
-                Text(Formatters.credits(state.creditsPreview),
-                    style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        color: scheme.primary)),
+                Text('CREDIT VALUE',
+                    style: AppType.label
+                        .copyWith(color: const Color(0xFF3A7A5F))),
+                const SizedBox(height: 6),
+                Text(
+                    '${state.weightKg.toStringAsFixed(2)} kg × '
+                    '${state.selectedPolymer.creditRate}',
+                    style: AppType.monoSmall
+                        .copyWith(color: scheme.onSurfaceVariant)),
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('CO₂ avoided',
-                  style:
-                      TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
-              const SizedBox(height: 4),
-              Text(Formatters.co2(state.co2Preview),
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w800)),
-              Text('@ ${state.selectedPolymer.creditRate}/kg',
-                  style: TextStyle(
-                      fontSize: 11, color: scheme.onSurfaceVariant)),
+              Text(Formatters.credits(state.creditsPreview),
+                  style: AppType.metricL.copyWith(color: AppColors.accent)),
+              Text('${Formatters.co2(state.co2Preview)} CO₂e',
+                  style: AppType.monoSmall
+                      .copyWith(color: scheme.onSurfaceVariant)),
             ],
           ),
         ],
@@ -443,18 +391,17 @@ class _MintButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<MintingCubit>().state;
     final minting = state.status == MintingStatus.minting;
-    return ElevatedButton.icon(
+    return FilledButton(
       onPressed: state.canMint && !minting
           ? () => context.read<MintingCubit>().mint()
           : null,
-      icon: minting
+      child: minting
           ? const SizedBox(
               width: 18,
               height: 18,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Colors.white))
-          : const Icon(Icons.verified),
-      label: Text(minting ? 'Minting…' : 'Mint credits'),
+              child:
+                  CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : const Text('Confirm & mint'),
     );
   }
 }

@@ -4,8 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/di/injector.dart';
 import '../core/theme/app_theme.dart';
 import '../data/services/preferences_service.dart';
+import '../features/auth/view/auth_gate.dart';
 import '../features/onboarding/view/onboarding_screen.dart';
-import '../features/home/view/home_shell.dart';
 import '../features/settings/cubit/settings_cubit.dart';
 
 class PolyMintApp extends StatelessWidget {
@@ -32,7 +32,7 @@ class PolyMintApp extends StatelessWidget {
   }
 }
 
-/// Decides the first screen: onboarding on first launch, otherwise the app.
+/// Decides the first screen: onboarding on first launch, then the auth gate.
 class _RootGate extends StatelessWidget {
   const _RootGate();
 
@@ -40,7 +40,7 @@ class _RootGate extends StatelessWidget {
   Widget build(BuildContext context) {
     final prefs = sl<PreferencesService>();
     return prefs.hasOnboarded
-        ? const HomeShell()
+        ? const AuthGate()
         : const OnboardingScreen();
   }
 }

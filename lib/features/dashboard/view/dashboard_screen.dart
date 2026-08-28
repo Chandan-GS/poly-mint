@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/di/injector.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_type.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../../../data/models/impact_stats.dart';
@@ -14,7 +16,6 @@ import '../widgets/impact_charts.dart';
 import 'transaction_tile.dart';
 
 class DashboardScreen extends StatelessWidget {
-  /// Callback wired by [HomeShell] to jump to the scan tab.
   final VoidCallback onScanRequested;
   const DashboardScreen({super.key, required this.onScanRequested});
 
@@ -26,6 +27,28 @@ class DashboardScreen extends StatelessWidget {
         sl<PreferencesService>().userId,
       ),
       child: _DashboardView(onScanRequested: onScanRequested),
+    );
+  }
+}
+
+/// Bordered surface block — the instrument "panel".
+class _Panel extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  const _Panel({required this.child, this.padding = const EdgeInsets.all(16)});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: child,
     );
   }
 }
@@ -50,44 +73,34 @@ class _DashboardView extends StatelessWidget {
               onRefresh: () async =>
                   Future.delayed(const Duration(milliseconds: 400)),
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                 children: [
-                  _Greeting(name: name),
-                  const SizedBox(height: 16),
+                  _Header(name: name),
+                  const SizedBox(height: 20),
                   if (state.pendingCount > 0) ...[
                     _PendingBanner(count: state.pendingCount),
                     const SizedBox(height: 16),
                   ],
-                  _CreditsHero(stats: s),
-                  const SizedBox(height: 16),
-                  _StatGrid(stats: s),
-                  const SizedBox(height: 20),
-                  _ImpactEquivalences(stats: s),
-                  const SizedBox(height: 24),
+                  _HeroReadout(stats: s),
+                  const SizedBox(height: 12),
+                  _TripleStat(stats: s),
+                  const SizedBox(height: 12),
+                  _Equivalences(stats: s),
+                  const SizedBox(height: 26),
                   if (s.scanCount > 0) ...[
-                    const SectionHeader(title: 'Material breakdown'),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: PolymerBreakdownChart(stats: s),
-                      ),
-                    ),
+                    const SectionLabel('Material breakdown'),
+                    _Panel(child: PolymerBreakdownChart(stats: s)),
                     const SizedBox(height: 24),
-                    const SectionHeader(title: 'This week'),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: WeeklyTrendChart(stats: s),
-                      ),
-                    ),
+                    const SectionLabel('This week'),
+                    _Panel(child: WeeklyTrendChart(stats: s)),
                     const SizedBox(height: 24),
                   ],
-                  SectionHeader(
-                    title: 'Recent activity',
+                  SectionLabel(
+                    'Recent activity',
                     trailing: state.recent.isEmpty
                         ? null
-                        : Text('${s.scanCount} total',
-                            style: TextStyle(
+                        : Text('${s.scanCount} TOTAL',
+                            style: AppType.monoSmall.copyWith(
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurfaceVariant)),
@@ -95,9 +108,25 @@ class _DashboardView extends StatelessWidget {
                   if (state.recent.isEmpty)
                     _FirstScanPrompt(onScan: onScanRequested)
                   else
-                    ...state.recent.map((t) => TransactionTile(txn: t)),
+                    _Panel(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < state.recent.length; i++) ...[
+                            if (i > 0)
+                              Divider(
+                                  height: 1,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant),
+                            TransactionTile(txn: state.recent[i]),
+                          ]
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: 24),
-                  _GlobalExchangeCard(stats: state.globalStats),
+                  const SectionLabel('Global exchange'),
+                  _GlobalExchange(stats: state.globalStats),
                 ],
               ),
             );
@@ -108,173 +137,190 @@ class _DashboardView extends StatelessWidget {
   }
 }
 
-class _Greeting extends StatelessWidget {
+class _Header extends StatelessWidget {
   final String name;
-  const _Greeting({required this.name});
+  const _Header({required this.name});
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final hour = DateTime.now().hour;
     final greeting = hour < 12
         ? 'Good morning'
         : hour < 17
             ? 'Good afternoon'
             : 'Good evening';
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(greeting,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        Text(name,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('POLYMINT',
+                  style: AppType.label.copyWith(
+                      color: scheme.onSurface, letterSpacing: 2.5)),
+              const SizedBox(height: 4),
+              Text('$greeting, $name',
+                  style: AppType.caption
+                      .copyWith(color: scheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+        // live-node indicator
+        Row(children: [
+          Container(
+              width: 6,
+              height: 6,
+              decoration:
+                  BoxDecoration(color: AppColors.accent, shape: BoxShape.circle)),
+          const SizedBox(width: 6),
+          Text('LIVE',
+              style: AppType.monoSmall.copyWith(color: scheme.onSurfaceVariant)),
+        ]),
       ],
     );
   }
 }
 
-class _CreditsHero extends StatelessWidget {
+/// The money visual: physically verified mass, big and monospaced.
+class _HeroReadout extends StatelessWidget {
   final ImpactStats stats;
-  const _CreditsHero({required this.stats});
+  const _HeroReadout({required this.stats});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1B8A5A), Color(0xFF0F5C3A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-      ),
+    final scheme = Theme.of(context).colorScheme;
+    return _Panel(
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Text('VERIFIED MASS',
+              style: AppType.label.copyWith(color: scheme.onSurfaceVariant)),
+          const SizedBox(height: 10),
+          RichText(
+            text: TextSpan(
+              text: Formatters.compact(stats.totalWeightKg) == ''
+                  ? '0'
+                  : stats.totalWeightKg.toStringAsFixed(2),
+              style: AppType.metricXL.copyWith(color: scheme.onSurface),
+              children: [
+                TextSpan(
+                    text: '  kg',
+                    style: AppType.metricM
+                        .copyWith(color: scheme.onSurfaceVariant)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Divider(height: 1, color: scheme.outlineVariant),
+          const SizedBox(height: 14),
+          Row(
             children: [
-              Icon(Icons.workspace_premium, color: Colors.white70, size: 18),
-              SizedBox(width: 6),
-              Text('YOUR VERIFIED CREDITS',
-                  style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5)),
+              Expanded(
+                child: Metric(
+                  label: 'Credits minted',
+                  value: Formatters.credits(stats.totalCredits),
+                  valueStyle: AppType.metricM,
+                  valueColor: AppColors.accent,
+                ),
+              ),
+              Expanded(
+                child: Metric(
+                  label: 'CO₂e avoided',
+                  value: stats.totalCo2SavedKg.toStringAsFixed(1),
+                  unit: 'kg',
+                  valueStyle: AppType.metricM,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(Formatters.credits(stats.totalCredits),
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 46,
-                  fontWeight: FontWeight.w900)),
-          const SizedBox(height: 4),
-          Text('${Formatters.weight(stats.totalWeightKg)} recovered · '
-              '${Formatters.co2(stats.totalCo2SavedKg)} CO₂ avoided',
-              style: const TextStyle(color: Colors.white, fontSize: 13)),
         ],
       ),
     );
   }
 }
 
-class _StatGrid extends StatelessWidget {
+class _TripleStat extends StatelessWidget {
   final ImpactStats stats;
-  const _StatGrid({required this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    final top = stats.topPolymerCode;
-    return Row(
-      children: [
-        Expanded(
-          child: StatCard(
-            icon: Icons.qr_code_scanner,
-            label: 'Batches scanned',
-            value: '${stats.scanCount}',
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: StatCard(
-            icon: Icons.category,
-            label: 'Top material',
-            accent: top == null ? null : PolymerCatalog.lookup(top).color,
-            value: top == null ? '—' : PolymerCatalog.lookup(top).shortName,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ImpactEquivalences extends StatelessWidget {
-  final ImpactStats stats;
-  const _ImpactEquivalences({required this.stats});
+  const _TripleStat({required this.stats});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            _Equiv(
-              icon: Icons.park,
-              color: const Color(0xFF16A34A),
-              value: stats.treesEquivalent.toStringAsFixed(1),
-              label: 'trees / yr',
+    final top = stats.topPolymerCode;
+    Widget div() =>
+        Container(width: 1, height: 34, color: scheme.outlineVariant);
+    return _Panel(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      child: Row(
+        children: [
+          Expanded(
+              child: Center(
+                  child: Metric(
+                      label: 'Batches',
+                      value: '${stats.scanCount}',
+                      align: CrossAxisAlignment.center))),
+          div(),
+          Expanded(
+              child: Center(
+                  child: Metric(
+                      label: 'Verified',
+                      value: '${stats.scanCount}',
+                      align: CrossAxisAlignment.center))),
+          div(),
+          Expanded(
+            child: Center(
+              child: Metric(
+                label: 'Top resin',
+                value: top == null ? '—' : PolymerCatalog.lookup(top).shortName,
+                valueStyle: AppType.metricM,
+                align: CrossAxisAlignment.center,
+              ),
             ),
-            _divider(scheme),
-            _Equiv(
-              icon: Icons.local_gas_station,
-              color: const Color(0xFFF59E0B),
-              value: Formatters.compact(stats.litresPetrolEquivalent),
-              label: 'L petrol',
-            ),
-            _divider(scheme),
-            _Equiv(
-              icon: Icons.co2,
-              color: const Color(0xFF2563EB),
-              value: Formatters.compact(stats.totalCo2SavedKg),
-              label: 'kg CO₂',
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-
-  Widget _divider(ColorScheme scheme) => Container(
-      width: 1, height: 40, color: scheme.outlineVariant.withValues(alpha: 0.5));
 }
 
-class _Equiv extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String value;
-  final String label;
-  const _Equiv(
-      {required this.icon,
-      required this.color,
-      required this.value,
-      required this.label});
+class _Equivalences extends StatelessWidget {
+  final ImpactStats stats;
+  const _Equivalences({required this.stats});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
+    final scheme = Theme.of(context).colorScheme;
+    Widget div() =>
+        Container(width: 1, height: 34, color: scheme.outlineVariant);
+    return _Panel(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      child: Row(
         children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 6),
-          Text(value,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          Expanded(
+              child: Center(
+                  child: Metric(
+                      label: 'Trees / yr',
+                      value: stats.treesEquivalent.toStringAsFixed(1),
+                      align: CrossAxisAlignment.center))),
+          div(),
+          Expanded(
+              child: Center(
+                  child: Metric(
+                      label: 'Petrol',
+                      value: Formatters.compact(stats.litresPetrolEquivalent),
+                      unit: 'L',
+                      align: CrossAxisAlignment.center))),
+          div(),
+          Expanded(
+              child: Center(
+                  child: Metric(
+                      label: 'CO₂',
+                      value: Formatters.compact(stats.totalCo2SavedKg),
+                      unit: 'kg',
+                      align: CrossAxisAlignment.center))),
         ],
       ),
     );
@@ -288,20 +334,21 @@ class _PendingBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.review),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.cloud_sync, color: Color(0xFFF59E0B)),
-          const SizedBox(width: 10),
+          const StatusTag(label: 'Sync', color: AppColors.review),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '$count batch${count == 1 ? '' : 'es'} waiting to sync. '
-              'They’ll upload automatically when you’re back online.',
-              style: const TextStyle(fontSize: 12.5),
+              '$count batch${count == 1 ? '' : 'es'} queued — uploads '
+              'automatically when back online.',
+              style: AppType.caption,
             ),
           ),
         ],
@@ -316,101 +363,63 @@ class _FirstScanPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const Icon(Icons.recycling, size: 40, color: Color(0xFF1B8A5A)),
-            const SizedBox(height: 12),
-            const Text('Scan your first batch',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-            const SizedBox(height: 6),
-            Text('Recover plastic, verify it with AI, and start minting credits.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: onScan,
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Start scanning'),
-            ),
-          ],
-        ),
+    final scheme = Theme.of(context).colorScheme;
+    return _Panel(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('No batches yet',
+              style: AppType.heading.copyWith(color: scheme.onSurface)),
+          const SizedBox(height: 6),
+          Text(
+              'Place plastic on the scale, capture it, and PolyMint verifies the '
+              'physical event before minting a credit.',
+              style: AppType.body.copyWith(color: scheme.onSurfaceVariant)),
+          const SizedBox(height: 16),
+          FilledButton(onPressed: onScan, child: const Text('Scan first batch')),
+        ],
       ),
     );
   }
 }
 
-class _GlobalExchangeCard extends StatelessWidget {
+class _GlobalExchange extends StatelessWidget {
   final ImpactStats stats;
-  const _GlobalExchangeCard({required this.stats});
+  const _GlobalExchange({required this.stats});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.public, size: 18, color: scheme.primary),
-                const SizedBox(width: 6),
-                const Text('Global exchange',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _MiniStat(
-                    value: Formatters.compact(stats.totalCredits),
-                    label: 'credits minted',
-                  ),
-                ),
-                Expanded(
-                  child: _MiniStat(
-                    value: Formatters.compact(stats.totalWeightKg),
-                    label: 'kg recovered',
-                  ),
-                ),
-                Expanded(
-                  child: _MiniStat(
-                    value: '${stats.scanCount}',
-                    label: 'batches',
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+    Widget div() =>
+        Container(width: 1, height: 34, color: scheme.outlineVariant);
+    return _Panel(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      child: Row(
+        children: [
+          Expanded(
+              child: Center(
+                  child: Metric(
+                      label: 'Credits',
+                      value: Formatters.compact(stats.totalCredits),
+                      align: CrossAxisAlignment.center))),
+          div(),
+          Expanded(
+              child: Center(
+                  child: Metric(
+                      label: 'Recovered',
+                      value: Formatters.compact(stats.totalWeightKg),
+                      unit: 'kg',
+                      align: CrossAxisAlignment.center))),
+          div(),
+          Expanded(
+              child: Center(
+                  child: Metric(
+                      label: 'Batches',
+                      value: '${stats.scanCount}',
+                      align: CrossAxisAlignment.center))),
+        ],
       ),
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  final String value;
-  final String label;
-  const _MiniStat({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-        Text(label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-      ],
     );
   }
 }
