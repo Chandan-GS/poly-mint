@@ -4,7 +4,7 @@ import '../../../core/di/injector.dart';
 import '../../../core/theme/app_type.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../../../data/services/preferences_service.dart';
-import '../../home/view/home_shell.dart';
+import '../../auth/view/auth_gate.dart';
 
 /// First-launch screen. Plain language, editorial layout — states the one idea
 /// (proof, not paperwork) and gets out of the way.
@@ -16,7 +16,7 @@ class OnboardingScreen extends StatelessWidget {
     if (!context.mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const HomeShell()),
+      MaterialPageRoute(builder: (_) => const AuthGate()),
     );
   }
 

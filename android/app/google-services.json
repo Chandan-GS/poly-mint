@@ -12,7 +12,12 @@
           "package_name": "com.example.poly_mint"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "560821610298-9fckj6dees4nulqfoct9na1gthbda1p1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBUy8J3QJDneUTx-3XD8qHHgy3M3nUqwHQ"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "560821610298-9fckj6dees4nulqfoct9na1gthbda1p1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

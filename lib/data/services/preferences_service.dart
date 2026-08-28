@@ -14,6 +14,8 @@ class PreferencesService {
   static const _kThemeMode = 'theme_mode';
   static const _kUserId = 'user_id';
   static const _kDisplayName = 'display_name';
+  static const _kPhotoUrl = 'photo_url';
+  static const _kAuthSkipped = 'auth_skipped';
   static const _kHighAccuracy = 'high_accuracy_mode';
   static const _kSensorMode = 'sensor_mode';
   static const _kQueue = 'offline_queue';
@@ -58,6 +60,36 @@ class PreferencesService {
       _prefs.getString(_kDisplayName) ?? 'Eco Contributor';
   Future<void> setDisplayName(String name) =>
       _prefs.setString(_kDisplayName, name.trim());
+
+  String? get photoUrl => _prefs.getString(_kPhotoUrl);
+
+  /// True once the user chose "continue without an account".
+  bool get authSkipped => _prefs.getBool(_kAuthSkipped) ?? false;
+  Future<void> setAuthSkipped(bool v) => _prefs.setBool(_kAuthSkipped, v);
+
+  /// Bind a signed-in account so the rest of the app (which reads
+  /// userId/displayName) is keyed by the real identity.
+  Future<void> bindIdentity(
+      {required String uid, String? name, String? photo}) async {
+    await _prefs.setString(_kUserId, uid);
+    if (name != null && name.trim().isNotEmpty) {
+      await setDisplayName(name);
+    }
+    if (photo != null) {
+      await _prefs.setString(_kPhotoUrl, photo);
+    } else {
+      await _prefs.remove(_kPhotoUrl);
+    }
+    await setAuthSkipped(false);
+  }
+
+  /// Drop the bound identity (on sign-out); a fresh anonymous id is minted on
+  /// the next [userId] read.
+  Future<void> clearIdentity() async {
+    await _prefs.remove(_kUserId);
+    await _prefs.remove(_kPhotoUrl);
+    await _prefs.remove(_kAuthSkipped);
+  }
 
   // --- Offline queue (list of flat JSON maps) -------------------------------
   List<Map<String, dynamic>> get queuedTransactions {

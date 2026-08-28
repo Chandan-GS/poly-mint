@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -5,7 +6,10 @@ import '../../../core/di/injector.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_type.dart';
 import '../../../core/widgets/app_widgets.dart';
+import '../../../data/services/auth_service.dart';
+import '../../../data/services/preferences_service.dart';
 import '../../../data/services/transaction_repository.dart';
+import '../../auth/view/sign_in_screen.dart';
 import '../../guide/view/resin_guide_screen.dart';
 import '../cubit/settings_cubit.dart';
 
@@ -23,6 +27,9 @@ class SettingsScreen extends StatelessWidget {
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
               children: [
+                const SectionLabel('Account'),
+                const _AccountSection(),
+                const SizedBox(height: 22),
                 const SectionLabel('You'),
                 Panel(
                   padding: EdgeInsets.zero,
@@ -174,6 +181,86 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
     if (result != null) cubit.setDisplayName(result);
+  }
+}
+
+/// Shows the signed-in Google account (with sign-out) or a sign-in prompt.
+/// Rebuilds on auth changes so it reflects sign-in done elsewhere.
+class _AccountSection extends StatelessWidget {
+  const _AccountSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return StreamBuilder<User?>(
+      stream: sl<AuthService>().authStateChanges(),
+      builder: (context, snap) {
+        final user = snap.data ?? sl<AuthService>().currentUser;
+        if (user == null) {
+          return Panel(
+            padding: EdgeInsets.zero,
+            child: KeyValueRow(
+              label: 'Sign in with Google',
+              value: const SizedBox.shrink(),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const SignInScreen(allowSkip: false)),
+              ),
+            ),
+          );
+        }
+        return Panel(
+          child: Row(
+            children: [
+              _Avatar(name: user.displayName ?? user.email ?? '?'),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(user.displayName ?? 'Signed in',
+                        style: AppType.bodyStrong
+                            .copyWith(color: scheme.onSurface)),
+                    if (user.email != null)
+                      Text(user.email!,
+                          style: AppType.monoSmall
+                              .copyWith(color: scheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await sl<AuthService>().signOut();
+                  await sl<PreferencesService>().clearIdentity();
+                },
+                child: const Text('Sign out'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _Avatar extends StatelessWidget {
+  final String name;
+  const _Avatar({required this.name});
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: scheme.onSurface,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+          style: AppType.bodyStrong.copyWith(color: scheme.surface)),
+    );
   }
 }
 

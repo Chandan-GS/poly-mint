@@ -32,6 +32,8 @@ dependencies:
   # Backend
   cloud_firestore: ^4.13.6
   firebase_core: ^2.24.2
+  firebase_auth: ^4.20.0
+  google_sign_in: ^6.2.1
 
   # Local persistence & platform
   shared_preferences: ^2.5.3

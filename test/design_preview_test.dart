@@ -5,6 +5,7 @@ import 'package:poly_mint/core/theme/app_colors.dart';
 import 'package:poly_mint/core/theme/app_theme.dart';
 import 'package:poly_mint/core/theme/app_type.dart';
 import 'package:poly_mint/core/widgets/app_widgets.dart';
+import 'package:poly_mint/features/auth/view/sign_in_screen.dart';
 
 /// Renders the redesigned dashboard with the real theme + IBM Plex fonts and
 /// writes a PNG (run with `flutter test --update-goldens`). Not a real test —
@@ -264,6 +265,20 @@ void main() {
     await tester.pumpAndSettle();
     await expectLater(
         find.byType(MaterialApp), matchesGoldenFile('goldens/config.png'));
+  });
+
+  testWidgets('sign-in preview', (tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      home: const SignInScreen(),
+    ));
+    await tester.pumpAndSettle();
+    await expectLater(
+        find.byType(MaterialApp), matchesGoldenFile('goldens/signin.png'));
   });
 }
 
