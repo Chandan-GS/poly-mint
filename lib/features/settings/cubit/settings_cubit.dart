@@ -9,26 +9,33 @@ class SettingsState extends Equatable {
   final String displayName;
   final bool highAccuracyMode;
 
+  /// 'simulated' | 'ble' — chooses the weight-sensor implementation.
+  final String sensorMode;
+
   const SettingsState({
     required this.themeMode,
     required this.displayName,
     required this.highAccuracyMode,
+    required this.sensorMode,
   });
 
   SettingsState copyWith({
     ThemeMode? themeMode,
     String? displayName,
     bool? highAccuracyMode,
+    String? sensorMode,
   }) {
     return SettingsState(
       themeMode: themeMode ?? this.themeMode,
       displayName: displayName ?? this.displayName,
       highAccuracyMode: highAccuracyMode ?? this.highAccuracyMode,
+      sensorMode: sensorMode ?? this.sensorMode,
     );
   }
 
   @override
-  List<Object?> get props => [themeMode, displayName, highAccuracyMode];
+  List<Object?> get props =>
+      [themeMode, displayName, highAccuracyMode, sensorMode];
 }
 
 /// Owns user-facing settings and persists every change immediately.
@@ -38,6 +45,7 @@ class SettingsCubit extends Cubit<SettingsState> {
           themeMode: _decodeTheme(_prefs.themeMode),
           displayName: _prefs.displayName,
           highAccuracyMode: _prefs.highAccuracyMode,
+          sensorMode: _prefs.sensorMode,
         ));
 
   final PreferencesService _prefs;
@@ -68,5 +76,10 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> setHighAccuracyMode(bool value) async {
     await _prefs.setHighAccuracyMode(value);
     emit(state.copyWith(highAccuracyMode: value));
+  }
+
+  Future<void> setSensorMode(String mode) async {
+    await _prefs.setSensorMode(mode);
+    emit(state.copyWith(sensorMode: mode));
   }
 }

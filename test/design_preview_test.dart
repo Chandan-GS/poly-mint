@@ -179,6 +179,92 @@ void main() {
       matchesGoldenFile('goldens/dashboard.png'),
     );
   });
+
+  testWidgets('config preview', (tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      home: Builder(builder: (context) {
+        final scheme = Theme.of(context).colorScheme;
+        return Scaffold(
+          appBar: AppBar(title: const Text('Config')),
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+            children: [
+              const SectionLabel('You'),
+              Panel(
+                  padding: EdgeInsets.zero,
+                  child: KeyValueRow(
+                      label: 'Display name',
+                      value: Text('Ramesh K.',
+                          style: AppType.monoBody
+                              .copyWith(color: scheme.onSurfaceVariant)),
+                      onTap: () {})),
+              const SizedBox(height: 22),
+              const SectionLabel('Sensor'),
+              Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Weight source', style: AppType.body),
+                    const SizedBox(height: 10),
+                    SegmentedToggle<String>(
+                      options: const [
+                        ('simulated', 'Simulated'),
+                        ('ble', 'Sensor')
+                      ],
+                      selected: 'simulated',
+                      onChanged: (_) {},
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                        'No hardware needed — the app fills in a realistic '
+                        'weight so you can try the full flow.',
+                        style: AppType.caption
+                            .copyWith(color: scheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 22),
+              const SectionLabel('Detection'),
+              Panel(
+                padding: EdgeInsets.zero,
+                child: Column(children: [
+                  KeyValueRow(
+                      label: 'Only auto-verify above',
+                      value: Text('85%',
+                          style: AppType.monoBody
+                              .copyWith(color: scheme.onSurfaceVariant))),
+                ]),
+              ),
+              const SizedBox(height: 22),
+              const SectionLabel('Appearance'),
+              Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Theme', style: AppType.body),
+                    const SizedBox(height: 10),
+                    SegmentedToggle<int>(
+                      options: const [(0, 'Light'), (1, 'Auto'), (2, 'Dark')],
+                      selected: 1,
+                      onChanged: (_) {},
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    ));
+    await tester.pumpAndSettle();
+    await expectLater(
+        find.byType(MaterialApp), matchesGoldenFile('goldens/config.png'));
+  });
 }
 
 Widget _row(BuildContext c, String resin, String kg, String status, Color col) {

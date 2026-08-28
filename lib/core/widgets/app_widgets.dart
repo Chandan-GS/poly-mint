@@ -4,6 +4,44 @@ import '../../data/models/polymer_info.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_type.dart';
 
+/// Bordered surface block — the instrument "panel". Everything sits in one.
+class Panel extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final Color? background;
+  final Color? border;
+  const Panel({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.background,
+    this.border,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: background ?? scheme.surface,
+        border: Border.all(color: border ?? scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// A hairline between rows inside a [Panel].
+class RowDivider extends StatelessWidget {
+  const RowDivider({super.key});
+  @override
+  Widget build(BuildContext context) =>
+      Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant);
+}
+
 /// A small ALL-CAPS section label — the instrument "field name".
 class SectionLabel extends StatelessWidget {
   final String text;
@@ -191,6 +229,91 @@ class StatusTag extends StatelessWidget {
         Text(label.toUpperCase(),
             style: AppType.label.copyWith(color: color)),
       ],
+    );
+  }
+}
+
+/// Instrument segmented toggle — flat, hairline, ink-filled selection.
+class SegmentedToggle<T> extends StatelessWidget {
+  final List<(T value, String label)> options;
+  final T selected;
+  final ValueChanged<T> onChanged;
+  const SegmentedToggle({
+    super.key,
+    required this.options,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          for (var i = 0; i < options.length; i++) ...[
+            if (i > 0) Container(width: 1, color: scheme.outlineVariant),
+            Expanded(
+              child: InkWell(
+                onTap: () => onChanged(options[i].$1),
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  color: options[i].$1 == selected
+                      ? scheme.onSurface
+                      : Colors.transparent,
+                  child: Text(
+                    options[i].$2.toUpperCase(),
+                    style: AppType.monoSmall.copyWith(
+                      color: options[i].$1 == selected
+                          ? scheme.surface
+                          : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ]
+        ],
+      ),
+    );
+  }
+}
+
+/// A hairline key/value row for settings-style panels.
+class KeyValueRow extends StatelessWidget {
+  final String label;
+  final Widget value;
+  final VoidCallback? onTap;
+  const KeyValueRow(
+      {super.key, required this.label, required this.value, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+        child: Row(
+          children: [
+            Expanded(
+                child: Text(label,
+                    style: AppType.body.copyWith(color: scheme.onSurface))),
+            value,
+            if (onTap != null) ...[
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right,
+                  size: 18, color: scheme.onSurfaceVariant),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

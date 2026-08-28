@@ -1,114 +1,139 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/formatters.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_type.dart';
+import '../../../core/widgets/app_widgets.dart';
 import '../../../data/models/polymer_info.dart';
 
-/// Educational reference for all resin codes — how to identify, prep and what
-/// each is worth. Reachable from Settings and the empty states.
+/// Reference for the seven resin codes. Plain rows; tap for the details.
 class ResinGuideScreen extends StatelessWidget {
   const ResinGuideScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final all = PolymerCatalog.all;
     return Scaffold(
-      appBar: AppBar(title: const Text('Recycling guide')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            'Plastics are marked with a resin code (1–7) inside the recycling '
-            'triangle ♲. PolyMint recognises each and rewards them by market '
-            'value and recyclability.',
-            style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                height: 1.4),
-          ),
-          const SizedBox(height: 16),
-          for (final p in PolymerCatalog.all) _ResinCard(polymer: p),
-        ],
+      appBar: AppBar(title: const Text('Resin guide')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          children: [
+            Text('The seven codes PolyMint reads. Tap any for how to spot and '
+                'prep it.',
+                style:
+                    AppType.body.copyWith(color: scheme.onSurfaceVariant)),
+            const SizedBox(height: 16),
+            Panel(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  for (var i = 0; i < all.length; i++) ...[
+                    if (i > 0) const RowDivider(),
+                    _ResinRow(polymer: all[i]),
+                  ]
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _ResinCard extends StatelessWidget {
+Color _recyclabilityColor(String label) {
+  final l = label.toLowerCase();
+  if (l.contains('high')) return AppColors.accent;
+  if (l.contains('low')) return AppColors.rejected;
+  if (l.contains('mix') || l.contains('other')) return AppColors.muted;
+  return AppColors.review;
+}
+
+class _ResinRow extends StatelessWidget {
   final PolymerInfo polymer;
-  const _ResinCard({required this.polymer});
+  const _ResinRow({required this.polymer});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          shape: const Border(),
-          leading: CircleAvatar(
-            backgroundColor: polymer.color,
-            child: Text('${polymer.resinNumber}',
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-          title: Text('${polymer.shortName} — ${polymer.fullName}',
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-          subtitle: Text(
-              '${polymer.creditRate} credits/kg · ${polymer.recyclabilityLabel}',
-              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+    return InkWell(
+      onTap: () => _showDetails(context, polymer),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(polymer.description,
-                  style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4)),
+            SizedBox(
+              width: 30,
+              child: Text(polymer.resinNumber.toString().padLeft(2, '0'),
+                  style: AppType.monoBody
+                      .copyWith(color: scheme.onSurfaceVariant)),
             ),
-            const SizedBox(height: 12),
-            _row(context, Icons.inventory_2, 'Common items',
-                polymer.commonItems.join(', ')),
-            const SizedBox(height: 8),
-            _row(context, Icons.co2, 'CO₂ saved',
-                '${Formatters.co2(polymer.co2SavedPerKg)} per kg recycled'),
-            const SizedBox(height: 12),
-            for (final tip in polymer.tips)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.check_circle_outline,
-                        size: 16, color: polymer.color),
-                    const SizedBox(width: 8),
-                    Expanded(
-                        child: Text(tip, style: const TextStyle(fontSize: 13))),
-                  ],
-                ),
-              ),
+            SizedBox(
+                width: 58,
+                child: Text(polymer.shortName,
+                    style: AppType.bodyStrong
+                        .copyWith(color: scheme.onSurface))),
+            Expanded(
+              child: Text(polymer.commonItems.take(2).join(', '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.caption
+                      .copyWith(color: scheme.onSurfaceVariant)),
+            ),
+            Text(polymer.recyclabilityLabel,
+                style: AppType.label
+                    .copyWith(color: _recyclabilityColor(polymer.recyclabilityLabel))),
           ],
         ),
       ),
     );
   }
 
-  Widget _row(BuildContext context, IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: RichText(
-            text: TextSpan(
-              style: DefaultTextStyle.of(context).style.copyWith(fontSize: 13),
-              children: [
-                TextSpan(
-                    text: '$label: ',
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                TextSpan(text: value),
-              ],
-            ),
-          ),
+  void _showDetails(BuildContext context, PolymerInfo p) {
+    final scheme = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: scheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Text(p.resinNumber.toString().padLeft(2, '0'),
+                  style:
+                      AppType.metricM.copyWith(color: scheme.onSurfaceVariant)),
+              const SizedBox(width: 10),
+              Text('${p.shortName} · ${p.fullName}',
+                  style: AppType.heading.copyWith(color: scheme.onSurface)),
+            ]),
+            const SizedBox(height: 12),
+            Text(p.description,
+                style: AppType.body.copyWith(color: scheme.onSurfaceVariant)),
+            const SizedBox(height: 16),
+            Text('COMMON ITEMS',
+                style:
+                    AppType.label.copyWith(color: scheme.onSurfaceVariant)),
+            const SizedBox(height: 6),
+            Text(p.commonItems.join(', '), style: AppType.body),
+            const SizedBox(height: 16),
+            Text('HOW TO PREP',
+                style:
+                    AppType.label.copyWith(color: scheme.onSurfaceVariant)),
+            const SizedBox(height: 6),
+            for (final tip in p.tips)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text('— $tip', style: AppType.body),
+              ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
