@@ -1,0 +1,33 @@
+# PolyMint — 7-class polymer classifier, combined resin dataset (TACO + HF resin)
+# Bigger backbone (yolov8s-cls) + augmentation for the accuracy push.
+# Consumed by src/train.py
+
+name: polymer7
+task: classify
+
+# s-cls: larger than nano for accuracy. Still phone-viable (~11 MB float32).
+model: yolov8s-cls.pt
+
+data: data/polymer7           # built by prepare_dataset.py (TACO + HF, --cap 350)
+classes: [PET, HDPE, PVC, LDPE, PP, PS, Other]
+
+imgsz: 224
+epochs: 80
+batch: 64
+patience: 25
+lr0: 0.001
+dropout: 0.2
+device: ""
+workers: 8
+seed: 42
+
+# augmentation — field robustness (lighting/rotation/occlusion)
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 20.0
+fliplr: 0.5
+erasing: 0.4
+auto_augment: randaugment
+
+project: runs

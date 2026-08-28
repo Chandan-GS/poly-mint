@@ -1,0 +1,11 @@
+name: purity
+imgsz: 224
+dtype: float32
+classes:
+- clean
+- contaminated
+- mixed
+input_layout: NHWC [1,H,W,3]
+scale: pixels / 255.0
+color: RGB
+confidence_gate: 0.85

@@ -12,3 +12,7 @@ __pycache__/
 .venv/
 venv/
 .DS_Store
+
+# auto-downloaded / export scratch
+*.npy
+yolo*.pt

@@ -87,15 +87,18 @@ def collect(sources, mapping, drop, identity, default_class, valid):
     return buckets, skipped
 
 
-def split_and_write(buckets, out_root, ratios, seed):
+def split_and_write(buckets, out_root, ratios, seed, cap=0):
     out_root = Path(out_root).expanduser()
     if out_root.exists():
         shutil.rmtree(out_root)
     train_r, val_r, test_r = ratios
     counts = defaultdict(lambda: defaultdict(int))
+    rng = __import__("random").Random(seed)
 
     for cls, files in buckets.items():
         files = sorted(set(files))
+        if cap and len(files) > cap:          # rebalance: cap majority classes
+            files = rng.sample(files, cap)
         if len(files) < 3:
             print(f"  ! {cls}: only {len(files)} images — too few to split cleanly")
         # train vs (val+test)
@@ -138,6 +141,8 @@ def main():
                     help="fallback class for unmapped labels (default: Other)")
     ap.add_argument("--split", nargs=3, type=float, default=[0.7, 0.15, 0.15],
                     metavar=("TRAIN", "VAL", "TEST"))
+    ap.add_argument("--cap", type=int, default=0,
+                    help="max images per class (0=no cap) — rebalances majority classes")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
 
@@ -155,7 +160,7 @@ def main():
     buckets = {c: buckets.get(c, []) for c in args.classes}
 
     ratios = tuple(r / sum(args.split) for r in args.split)  # normalise
-    out_root, counts = split_and_write(buckets, args.out, ratios, args.seed)
+    out_root, counts = split_and_write(buckets, args.out, ratios, args.seed, args.cap)
 
     print(f"\nDataset written to: {out_root}")
     print(f"{'class':<14}{'train':>8}{'val':>8}{'test':>8}{'total':>8}")

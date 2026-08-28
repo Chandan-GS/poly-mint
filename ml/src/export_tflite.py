@@ -17,6 +17,8 @@ predictable name and writes a sidecar <name>.labels.txt with the class order.
 """
 import argparse
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import yaml
@@ -25,6 +27,28 @@ try:
     from ultralytics import YOLO
 except ImportError:
     raise SystemExit("ultralytics is required: pip install -r requirements.txt")
+
+
+def export_via_onnx2tf(weights: Path, imgsz: int) -> Path:
+    """Robust fallback: PT -> ONNX -> (onnx2tf) -> float32 .tflite.
+
+    Ultralytics' built-in TFLite export attaches metadata via `tflite_support`,
+    which has no Python 3.12 wheel and crashes the export. onnx2tf itself works
+    fine, so we drive it directly and skip the metadata step entirely.
+    """
+    model = YOLO(str(weights))
+    onnx_path = Path(model.export(format="onnx", imgsz=imgsz, opset=13))
+    sm_dir = weights.parent / f"{weights.stem}_saved_model"
+    print(f"Running onnx2tf on {onnx_path} ...")
+    subprocess.run(
+        [sys.executable, "-m", "onnx2tf", "-i", str(onnx_path),
+         "-o", str(sm_dir), "-nuo"],
+        check=True,
+    )
+    cands = sorted(sm_dir.glob("*float32.tflite"))
+    if not cands:
+        raise SystemExit(f"onnx2tf produced no float32 .tflite in {sm_dir}")
+    return cands[0]
 
 
 def main():
@@ -49,24 +73,28 @@ def main():
     names = model.names  # {idx: class_name} — THE canonical class order
     print(f"Exporting '{run_name}'  classes={list(names.values())}")
 
-    export_path = model.export(format="tflite", imgsz=args.imgsz, int8=args.int8)
-    export_path = Path(export_path)
-    print(f"Ultralytics produced: {export_path}")
-
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     suffix = "int8" if args.int8 else "float32"
     tflite_out = out_dir / f"{run_name}_{suffix}.tflite"
 
-    # export_path may be the .tflite itself or the *_saved_model dir
-    if export_path.suffix == ".tflite":
-        src = export_path
-    else:
-        cands = sorted(export_path.glob(f"*{suffix}.tflite")) or \
-                sorted(export_path.glob("*.tflite"))
-        if not cands:
-            raise SystemExit(f"no .tflite found under {export_path}")
-        src = cands[0]
+    # Try Ultralytics' native export; if it dies on the tflite_support metadata
+    # step (Python 3.12), fall back to driving onnx2tf ourselves.
+    src = None
+    try:
+        export_path = Path(model.export(format="tflite", imgsz=args.imgsz, int8=args.int8))
+        if export_path.suffix == ".tflite":
+            src = export_path
+        else:
+            cands = sorted(export_path.glob(f"*{suffix}.tflite")) or \
+                    sorted(export_path.glob("*.tflite"))
+            src = cands[0] if cands else None
+    except Exception as e:
+        print(f"native tflite export failed ({type(e).__name__}); falling back to onnx2tf")
+    if src is None:
+        if args.int8:
+            raise SystemExit("int8 fallback not implemented; use native export for int8")
+        src = export_via_onnx2tf(weights, args.imgsz)
     shutil.copy2(src, tflite_out)
 
     # sidecar label file (index-ordered) — ship this alongside the .tflite

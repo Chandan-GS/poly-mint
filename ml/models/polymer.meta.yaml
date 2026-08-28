@@ -1,0 +1,16 @@
+name: polymer
+imgsz: 224
+dtype: float32
+classes:
+- HDPE
+- LDPE
+- Other
+- PET
+- PP
+- PS
+input_layout: NHWC [1,224,224,3]
+scale: pixels/255.0
+color: RGB
+confidence_gate: 0.85
+val_top1: 0.678
+note: TACO v0 (6-class, no PVC)
