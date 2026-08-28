@@ -1,0 +1,52 @@
+# TACO (Trash Annotations in Context) category -> PolyMint 7 resin classes.
+# Used by src/download_taco.py to crop annotated objects into an ImageFolder.
+#
+# TACO labels by OBJECT, so resin is an approximation (a "bottle" is usually but
+# not always PET). This is a legitimate real-image bootstrap for a v0 model; the
+# real accuracy still comes from self-collected, resin-labelled scrapyard images.
+# Keys are TACO's fine category name (the 'name' field), exactly as in annotations.
+
+map:
+  # --- PET (clear bottles, most drink bottles) ---
+  Clear plastic bottle: PET
+  Other plastic bottle: PET
+  Disposable plastic cup: PET
+
+  # --- HDPE (caps, some rigid) — sparse in TACO ---
+  Plastic bottle cap: HDPE
+  Plastic lid: HDPE
+
+  # --- LDPE (films, bags, wrappers) ---
+  Plastic film: LDPE
+  Garbage bag: LDPE
+  Single-use carrier bag: LDPE
+  Other plastic wrapper: LDPE
+  Six pack rings: LDPE
+  Crisp packet: LDPE
+
+  # --- PP (bags, tubs, containers, straws, utensils) ---
+  Polypropylene bag: PP
+  Spread tub: PP
+  Tupperware: PP
+  Disposable food container: PP
+  Other plastic container: PP
+  Plastic straw: PP
+  Plastic utensils: PP
+
+  # --- PS (foam) ---
+  Foam cup: PS
+  Foam food container: PS
+  Styrofoam piece: PS
+  Other plastic cup: PS
+
+  # --- Other (mixed / multilayer / misc plastic) ---
+  Other plastic: Other
+  Squeezable tube: Other
+  Plastic glooves: Other
+  Aluminium blister pack: Other
+  Carded blister pack: Other
+
+# PVC is essentially absent in TACO (pipes/blister rigid) — the class will be
+# empty from TACO alone. Fill PVC from self-collected images later.
+
+# Everything not listed is non-plastic (glass/metal/paper/organic) -> dropped.

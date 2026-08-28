@@ -11,6 +11,25 @@ contract so the app matches training exactly.
 > and are intentionally out of scope here. The ESP32 only streams load-cell
 > weight over BLE; **all ML runs in the Flutter app.**
 
+## Current status — trained v0 exists ✅
+
+A real model has been trained end-to-end and exported. Reproducible via the steps
+below; artifacts land in `models/` (gitignored — regenerate or share out-of-band).
+
+| | Result |
+|---|---|
+| Polymer model | `yolov8n-cls`, **6 classes** (PET, HDPE, LDPE, PP, PS, Other) |
+| Training data | **1,557 real crops** from TACO (`download_taco.py`) |
+| Val top-1 | **~68%** — **below the 85% target** (see why ↓) |
+| TFLite export | float32, ~5.5 MB, parity-verified vs PyTorch (max prob diff 0.03) ✅ |
+| Purity model | placeholder trained on **synthetic** data — needs real labels |
+
+**Why 68%, not 85%, and how to close it:**
+- **TACO labels by object, not resin** — a "bottle" is mapped to PET but may be HDPE, so labels are noisy. Only WaDaBa / self-collected resin-labelled images fix this.
+- **No PVC** — TACO has none, so the model is 6-class. PVC needs self-collected data.
+- **Class imbalance** — LDPE (660) ≫ PS (107). Balance with more field images.
+- The path to 85% is **self-collected scrapyard images + active learning**, exactly as the plan states. The pipeline is proven; it now needs better data, not more code.
+
 ## What the ML delivers to the rest of the system
 
 For each armed capture the app gets:
@@ -100,7 +119,21 @@ resin from object type (a "bottle" may be PET or HDPE). Expect the public-data m
 to be a rough v0 — the accuracy target is reached by adding self-collected scrapyard
 images + the active-learning relabels.
 
-Put each source as `raw_label/*.jpg` sub-folders, then:
+**Fastest real dataset — TACO (one command, no auth):** `src/download_taco.py`
+downloads TACO images and crops the annotated plastic objects into an
+ImageFolder, mapping TACO's object categories → the 7 resin classes via
+`configs/taco_map.yaml`. Great for a real v0; note **PVC is absent in TACO** and
+classes are imbalanced (LDPE-heavy), so it's a warm start, not the finish line.
+
+```bash
+git clone --depth 1 https://github.com/pedropro/TACO.git data/taco_repo
+python src/download_taco.py --ann data/taco_repo/data/annotations.json \
+    --map configs/taco_map.yaml --out data/taco_crops --pad 0.15 --min-size 40
+python src/prepare_dataset.py --source data/taco_crops --identity-map \
+    --out data/polymer --classes PET HDPE PVC LDPE PP PS Other
+```
+
+**Or bring your own** — put each source as `raw_label/*.jpg` sub-folders, then:
 
 ```bash
 python src/prepare_dataset.py \
@@ -109,6 +142,9 @@ python src/prepare_dataset.py \
   --out data/polymer \
   --classes PET HDPE PVC LDPE PP PS Other
 ```
+
+**No local GPU?** Use `notebooks/train_polymint_colab.ipynb` — same pipeline on
+Colab's free T4, with a download cell for the resulting `.tflite` + labels.
 Edit `configs/class_map.yaml` to control how raw labels fold into the 7 classes.
 For purity, label your own images into `clean/ mixed/ contaminated/` folders and
 ingest with `--identity-map` (see the script header).
