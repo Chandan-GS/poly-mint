@@ -63,6 +63,14 @@ def main():
         name=cfg["name"],
         exist_ok=True,
         verbose=True,
+        # augmentation (field robustness) — overridable per config
+        hsv_h=cfg.get("hsv_h", 0.015),
+        hsv_s=cfg.get("hsv_s", 0.7),
+        hsv_v=cfg.get("hsv_v", 0.4),
+        degrees=cfg.get("degrees", 15.0),
+        fliplr=cfg.get("fliplr", 0.5),
+        erasing=cfg.get("erasing", 0.4),
+        auto_augment=cfg.get("auto_augment", "randaugment"),
     )
 
     # Report top-1/top-5 on the held-out val set against the plan's targets.
