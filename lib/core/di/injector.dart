@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 
 import '../../data/services/ble_weight_sensor.dart';
 import '../../data/services/connectivity_service.dart';
+import '../../data/services/crypto_service.dart';
 import '../../data/services/location_service.dart';
 import '../../data/services/ml_service.dart';
 import '../../data/services/preferences_service.dart';
@@ -23,6 +24,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
   sl.registerLazySingleton<LocationService>(() => LocationService());
   sl.registerLazySingleton<MlService>(() => MlService());
+  sl.registerLazySingleton<CryptoService>(() => CryptoService());
 
   // Weight sensor: pick BLE vs simulator from settings. Registered as a factory
   // so toggling the mode and re-resolving yields the right implementation.
