@@ -57,6 +57,7 @@ class MintingCubit extends Cubit<MintingState> {
     required TransactionRepository repo,
     required LocationService location,
     required PreferencesService prefs,
+    double weightKg = 0,
   })  : _result = result,
         _repo = repo,
         _location = location,
@@ -64,7 +65,8 @@ class MintingCubit extends Cubit<MintingState> {
         super(MintingState(
           status: MintingStatus.editing,
           selectedPolymer: result.polymer,
-          weightKg: 0,
+          // Weight comes from the signed scale reading, not typed input.
+          weightKg: weightKg,
         ));
 
   final ClassificationResult _result;
