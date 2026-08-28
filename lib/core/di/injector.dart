@@ -1,11 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get_it/get_it.dart';
 
+import '../../data/services/ble_weight_sensor.dart';
 import '../../data/services/connectivity_service.dart';
 import '../../data/services/location_service.dart';
 import '../../data/services/ml_service.dart';
 import '../../data/services/preferences_service.dart';
+import '../../data/services/simulated_weight_sensor.dart';
 import '../../data/services/transaction_repository.dart';
+import '../../data/services/weight_sensor.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -20,6 +23,14 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
   sl.registerLazySingleton<LocationService>(() => LocationService());
   sl.registerLazySingleton<MlService>(() => MlService());
+
+  // Weight sensor: pick BLE vs simulator from settings. Registered as a factory
+  // so toggling the mode and re-resolving yields the right implementation.
+  sl.registerFactory<WeightSensor>(
+    () => prefs.useSimulatedSensor
+        ? SimulatedWeightSensor()
+        : BleWeightSensor(),
+  );
 
   sl.registerLazySingleton<TransactionRepository>(
     () => TransactionRepository(

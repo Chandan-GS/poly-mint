@@ -15,6 +15,7 @@ class PreferencesService {
   static const _kUserId = 'user_id';
   static const _kDisplayName = 'display_name';
   static const _kHighAccuracy = 'high_accuracy_mode';
+  static const _kSensorMode = 'sensor_mode';
   static const _kQueue = 'offline_queue';
 
   static Future<PreferencesService> create() async =>
@@ -32,6 +33,14 @@ class PreferencesService {
   bool get highAccuracyMode => _prefs.getBool(_kHighAccuracy) ?? true;
   Future<void> setHighAccuracyMode(bool v) =>
       _prefs.setBool(_kHighAccuracy, v);
+
+  // --- Weight-sensor mode ('simulated' | 'ble') -----------------------------
+  /// Defaults to 'simulated' so the app is fully usable with no hardware.
+  /// Switch to 'ble' once a physical PolyMint node is available.
+  String get sensorMode => _prefs.getString(_kSensorMode) ?? 'simulated';
+  Future<void> setSensorMode(String mode) =>
+      _prefs.setString(_kSensorMode, mode);
+  bool get useSimulatedSensor => sensorMode != 'ble';
 
   // --- Identity -------------------------------------------------------------
   /// Stable anonymous id generated once per install. Ties transactions to a
