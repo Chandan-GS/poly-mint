@@ -1,0 +1,28 @@
+# PolyMint — purity/contamination grader training config
+# Consumed by src/train.py
+#
+# Plan calls for a "second small head OR a second lightweight model".
+# We ship it as a SECOND lightweight yolov8n-cls model — simplest to train,
+# ship and reason about on a phone, and fully decoupled from the polymer model.
+
+name: purity
+task: classify
+
+model: yolov8n-cls.pt
+
+data: data/purity
+
+# 3 purity grades. Credit value scales with purityFactor[grade] downstream.
+classes: [clean, mixed, contaminated]
+
+imgsz: 224
+epochs: 80
+batch: 64
+patience: 20
+lr0: 0.001
+dropout: 0.1
+device: ""
+workers: 8
+seed: 42
+
+project: runs

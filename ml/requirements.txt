@@ -1,0 +1,23 @@
+# PolyMint ML — Phase 1 (phone-only, float32 TFLite)
+# Python 3.10 or 3.11 recommended.
+
+# --- Training / export ---
+ultralytics==8.3.0          # YOLOv8-cls training + TFLite export
+torch>=2.2                  # backbone (CPU wheels are fine for nano; GPU speeds training)
+torchvision>=0.17
+
+# --- TFLite export toolchain (Ultralytics uses these under the hood) ---
+tensorflow==2.16.1          # SavedModel -> TFLite conversion
+onnx>=1.16
+onnxruntime>=1.18
+onnx2tf>=1.22
+onnx_graphsurgeon>=0.3
+sng4onnx>=1.0
+tflite-support>=0.4.4       # metadata (optional)
+
+# --- Data prep + local inference test ---
+Pillow>=10.0
+numpy>=1.24
+pyyaml>=6.0
+tqdm>=4.66
+scikit-learn>=1.3           # stratified train/val/test split
