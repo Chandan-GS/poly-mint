@@ -9,7 +9,9 @@ class _Slide {
   final Color color;
   final String title;
   final String body;
-  const _Slide(this.icon, this.color, this.title, this.body);
+  final bool showLogo;
+  const _Slide(this.icon, this.color, this.title, this.body,
+      {this.showLogo = false});
 }
 
 /// First-launch walkthrough explaining the scan → weigh → mint flow.
@@ -31,6 +33,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       'Turn plastic into impact',
       'PolyMint verifies recovered plastic with on-device AI and mints '
           'circular-economy credits for every kilogram you recycle.',
+      showLogo: true,
     ),
     _Slide(
       Icons.center_focus_strong,
@@ -149,15 +152,22 @@ class _SlideView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 140,
-            height: 140,
-            decoration: BoxDecoration(
-              color: slide.color.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
+          if (slide.showLogo)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(36),
+              child: Image.asset('assets/branding/icon_512.png',
+                  width: 140, height: 140),
+            )
+          else
+            Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                color: slide.color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(slide.icon, size: 64, color: slide.color),
             ),
-            child: Icon(slide.icon, size: 64, color: slide.color),
-          ),
           const SizedBox(height: 40),
           Text(slide.title,
               textAlign: TextAlign.center,

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22A36B"/><stop offset="1" stop-color="#0B4D31"/></linearGradient></defs><rect width="1024" height="1024" rx="230" fill="url(#bg)"/><g transform="translate(61.44 61.44) scale(0.88)">
+  <!-- PolyMint mark: a recovered bottle carrying a fresh mint leaf -->
+  <defs>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6EE7B7"/><stop offset="1" stop-color="#22B07D"/>
+    </linearGradient>
+  </defs>
+  <rect x="444" y="150" width="136" height="96" rx="22" fill="#FFFFFF"/>
+  <rect x="444" y="214" width="136" height="14" fill="#D1FAE5"/>
+  <path fill="#FFFFFF" d="M462 252 H562 V312 C562 352 676 386 676 462 V792 Q676 870 598 870 H426 Q348 870 348 792 V462 C348 386 462 352 462 312 Z"/>
+  <g transform="translate(512 646) rotate(34) scale(0.86) translate(-512 -640)">
+    <path fill="url(#leaf)" d="M512 436 C548 486 600 566 600 640 C600 714 548 794 512 844 C476 794 424 714 424 640 C424 566 476 486 512 436 Z"/>
+    <path d="M512 486 Q507 640 512 806" fill="none" stroke="#0F5C3A" stroke-width="15" stroke-linecap="round"/>
+    <path d="M510 586 L560 546 M509 652 L462 612 M510 718 L556 682" stroke="#0F5C3A" stroke-width="12" stroke-linecap="round"/>
+  </g>
+
+</g></svg>

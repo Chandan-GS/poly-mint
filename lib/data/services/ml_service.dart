@@ -16,6 +16,9 @@ import '../models/polymer_info.dart';
 ///    stable soft-max, so "confidence" is meaningful.
 ///  * Returns a ranked top-K candidate list (enables manual correction).
 ///  * Optional multi-frame averaging to smooth out a single bad frame.
+///  * Matches the exported YOLO classifier's contract: inputs scaled to
+///    `[0, 1]`, and outputs that are already probabilities are not
+///    soft-maxed a second time (which flattened every result to ~31%).
 class MlService {
   Interpreter? _interpreter;
   List<String> _labels = [];
@@ -80,8 +83,8 @@ class MlService {
           .reshape([1, _outputClasses]);
       _interpreter!.run(input, output);
 
-      final logits = List<double>.from(output[0]).sublist(0, classes);
-      final probs = _softmax(logits);
+      final scores = List<double>.from(output[0]).sublist(0, classes);
+      final probs = _toProbabilities(scores);
       for (var i = 0; i < classes; i++) {
         accumulated[i] += probs[i];
       }
@@ -115,7 +118,7 @@ class MlService {
     );
   }
 
-  /// Decode → center-crop square → resize → normalize to [-1, 1].
+  /// Decode → center-crop square → resize → normalize to [0, 1].
   /// Returns a `[1, H, W, 3]` tensor, or null if the frame can't be decoded.
   List<List<List<List<double>>>>? _preprocess(Uint8List bytes) {
     final decoded = img.decodeImage(bytes);
@@ -141,13 +144,22 @@ class MlService {
         return List.generate(_inputWidth, (x) {
           final p = resized.getPixel(x, y);
           return [
-            (p.r - 127.5) / 127.5,
-            (p.g - 127.5) / 127.5,
-            (p.b - 127.5) / 127.5,
+            p.r / 255.0,
+            p.g / 255.0,
+            p.b / 255.0,
           ];
         });
       }),
     ];
+  }
+
+  /// The exported model already ends in a soft-max; only apply one when the
+  /// scores are raw logits.
+  List<double> _toProbabilities(List<double> scores) {
+    final sum = scores.fold<double>(0, (a, b) => a + b);
+    final isDistribution =
+        scores.every((v) => v >= 0 && v <= 1) && (sum - 1).abs() < 1e-3;
+    return isDistribution ? scores : _softmax(scores);
   }
 
   /// Numerically stable soft-max.

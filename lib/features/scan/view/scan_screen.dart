@@ -168,29 +168,34 @@ class _ScanViewState extends State<_ScanView> with WidgetsBindingObserver {
         // Darken outside the framing window.
         _ReticleOverlay(),
         // Top bar.
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              children: [
-                const Spacer(),
-                BlocBuilder<SettingsCubit, SettingsState>(
-                  buildWhen: (a, b) =>
-                      a.highAccuracyMode != b.highAccuracyMode,
-                  builder: (context, s) => _Pill(
-                    icon: s.highAccuracyMode
-                        ? Icons.hdr_strong
-                        : Icons.hdr_weak,
-                    label: s.highAccuracyMode ? 'High accuracy' : 'Fast',
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  const Spacer(),
+                  BlocBuilder<SettingsCubit, SettingsState>(
+                    buildWhen: (a, b) =>
+                        a.highAccuracyMode != b.highAccuracyMode,
+                    builder: (context, s) => _Pill(
+                      icon: s.highAccuracyMode
+                          ? Icons.hdr_strong
+                          : Icons.hdr_weak,
+                      label: s.highAccuracyMode ? 'High accuracy' : 'Fast',
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _toggleTorch,
-                  icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off,
-                      color: Colors.white),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _toggleTorch,
+                    icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off,
+                        color: Colors.white),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
