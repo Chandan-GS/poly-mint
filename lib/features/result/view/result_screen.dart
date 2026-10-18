@@ -6,6 +6,7 @@ import '../../../core/di/injector.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/classification_result.dart';
 import '../../../data/models/polymer_info.dart';
+import '../../../data/models/waste_transaction.dart';
 import '../../../data/services/location_service.dart';
 import '../../../data/services/preferences_service.dart';
 import '../../../data/services/transaction_repository.dart';
@@ -61,7 +62,9 @@ class _ResultView extends StatelessWidget {
             const _WeightInput(),
             const SizedBox(height: 16),
             const _CreditPreview(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            _VerificationNotice(result: result),
+            const SizedBox(height: 16),
             const _MintButton(),
             const SizedBox(height: 12),
           ],
@@ -72,6 +75,8 @@ class _ResultView extends StatelessWidget {
 
   void _showSuccess(BuildContext context, MintingState state) {
     final online = state.status == MintingStatus.mintedOnline;
+    final review =
+        state.verificationFor(result) == VerificationMethod.manualReview;
     showModalBottomSheet(
       context: context,
       isDismissible: false,
@@ -98,10 +103,17 @@ class _ResultView extends StatelessWidget {
                     fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             Text(
-              online
-                  ? 'Verified and recorded to the exchange ledger.'
-                  : 'Saved offline — it will sync automatically when you '
-                      'reconnect.',
+              [
+                if (review)
+                  'Flagged for manual review: the resin was not confirmed by '
+                      'the AI at the 85% gate.'
+                else
+                  'AI-verified.',
+                online
+                    ? 'Recorded to the exchange ledger.'
+                    : 'Saved offline — it will sync automatically when you '
+                        'reconnect.',
+              ].join(' '),
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -208,6 +220,44 @@ class _ConfidenceCard extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Tells the user, before minting, whether the record will be AI-verified or
+/// sent for manual review, and why.
+class _VerificationNotice extends StatelessWidget {
+  final ClassificationResult result;
+  const _VerificationNotice({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = context.select((MintingCubit c) => c.state.selectedPolymer);
+    final review = verificationOf(result, selected) == VerificationMethod.manualReview;
+    final overridden = selected.code != result.polymer.code;
+    final color = review ? const Color(0xFFF59E0B) : const Color(0xFF16A34A);
+    final message = !review
+        ? 'AI-verified: ${result.polymer.shortName} at '
+            '${Formatters.percent(result.confidence)} confidence.'
+        : overridden
+            ? 'Manual review: you changed the resin from the AI pick '
+                '(${result.polymer.shortName}).'
+            : 'Manual review: AI confidence is below the 85% gate.';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(review ? Icons.rate_review_outlined : Icons.verified,
+              size: 18, color: color),
+          const SizedBox(width: 10),
+          Expanded(child: Text(message, style: const TextStyle(fontSize: 12.5))),
+        ],
       ),
     );
   }

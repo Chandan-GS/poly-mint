@@ -14,6 +14,8 @@ class TransactionTile extends StatelessWidget {
     final polymer = PolymerCatalog.lookup(txn.polymerCode);
     final scheme = Theme.of(context).colorScheme;
     final pending = txn.status == TransactionStatus.pendingSync;
+    final review = txn.verification == VerificationMethod.manualReview;
+    const amber = Color(0xFFF59E0B);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -55,13 +57,21 @@ class TransactionTile extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        pending ? Icons.cloud_upload_outlined : Icons.verified,
+                        pending
+                            ? Icons.cloud_upload_outlined
+                            : review
+                                ? Icons.rate_review_outlined
+                                : Icons.verified,
                         size: 13,
-                        color: pending ? const Color(0xFFF59E0B) : scheme.primary,
+                        color: pending || review ? amber : scheme.primary,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        pending ? 'Pending sync' : Formatters.relative(txn.timestamp),
+                        pending
+                            ? 'Pending sync'
+                            : review
+                                ? 'Needs review · ${Formatters.relative(txn.timestamp)}'
+                                : Formatters.relative(txn.timestamp),
                         style: TextStyle(
                             fontSize: 11.5, color: scheme.onSurfaceVariant),
                       ),

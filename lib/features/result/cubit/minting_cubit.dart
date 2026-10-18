@@ -28,6 +28,10 @@ class MintingState extends Equatable {
   });
 
   double get creditsPreview => weightKg * selectedPolymer.creditRate;
+
+  /// Whether this record will be AI-verified or sent for manual review.
+  VerificationMethod verificationFor(ClassificationResult result) =>
+      verificationOf(result, selectedPolymer);
   double get co2Preview => weightKg * selectedPolymer.co2SavedPerKg;
   bool get canMint => weightKg > 0 && status != MintingStatus.minting;
 
@@ -47,6 +51,16 @@ class MintingState extends Equatable {
 
   @override
   List<Object?> get props => [status, selectedPolymer.code, weightKg, error];
+}
+
+/// AI-verified only when the recorded resin is the model's own pick and the
+/// model is at or above the confidence gate; everything else needs review.
+VerificationMethod verificationOf(
+    ClassificationResult result, PolymerInfo recorded) {
+  final isAiPick = recorded.code == result.polymer.code;
+  return isAiPick && result.isConfident
+      ? VerificationMethod.aiVerified
+      : VerificationMethod.manualReview;
 }
 
 /// Handles confirming the polymer, computing credits/CO₂ and writing the
@@ -97,8 +111,9 @@ class MintingCubit extends Cubit<MintingState> {
       userId: _prefs.userId,
       userName: _prefs.displayName,
       polymerCode: polymer.code,
-      // If the user manually overrode the AI pick, record full confidence.
-      confidence: polymer.code == _result.polymer.code ? _result.confidence : 1.0,
+      // The model's probability for the resin actually recorded, so a manual
+      // override never shows up as a confident AI call.
+      confidence: _result.confidenceFor(polymer.code),
       weightKg: state.weightKg,
       creditsMinted: state.creditsPreview,
       co2SavedKg: state.co2Preview,
@@ -106,6 +121,10 @@ class MintingCubit extends Cubit<MintingState> {
       lng: geo?.lng,
       timestamp: DateTime.now(),
       status: TransactionStatus.verified,
+      verification: verificationOf(_result, polymer),
+      aiPolymerCode: _result.polymer.code,
+      aiConfidence: _result.confidence,
+      modelVersion: _result.modelVersion,
     );
 
     try {
