@@ -1,0 +1,16 @@
+name: polymer7_v2
+imgsz: 224
+dtype: float32
+classes:
+- HDPE
+- LDPE
+- Other
+- PET
+- PP
+- PS
+- PVC
+input_layout: NHWC [1,H,W,3]
+scale: pixels / 255.0
+color: RGB
+confidence_gate: 0.85
+calibration_temperature: 4.077   # ml/kaggle/calibrate.py; applied in the app

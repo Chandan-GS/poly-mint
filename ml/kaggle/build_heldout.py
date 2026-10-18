@@ -34,6 +34,8 @@ def main():
     ap.add_argument("--downloads", required=True, help="dir with seven/ and visual/ downloads")
     ap.add_argument("--manifest", default=str(Path(__file__).parent / "results/polymint7_v2/split_manifest.csv"))
     ap.add_argument("--out", required=True)
+    ap.add_argument("--split", default="test", choices=["test", "val"],
+                    help="which split of the run to rebuild (val is used for calibration)")
     args = ap.parse_args()
 
     items = {"seven": [], "visual": []}
@@ -51,7 +53,7 @@ def main():
     out.mkdir(parents=True)
     labels, mismatched = [], 0
     for r in csv.DictReader(open(args.manifest)):
-        if r["split"] != "test" or r["source"] not in items:
+        if r["split"] != args.split or r["source"] not in items:
             continue
         idx = int(Path(r["path"]).stem.split("_")[1])
         src, cls = items[r["source"]][idx]
@@ -64,7 +66,7 @@ def main():
     with open(out / "labels.csv", "w") as fh:
         fh.write("file,class,source\n")
         fh.writelines(",".join(l) + "\n" for l in labels)
-    print(f"{len(labels)} held-out images -> {out}  (class mismatches: {mismatched})")
+    print(f"{len(labels)} {args.split} images -> {out}  (class mismatches: {mismatched})")
     print(dict(Counter(c for _, c, _ in labels)))
 
 

@@ -69,3 +69,20 @@ All 7 classes are recognised, but PET, PP and PS are weak, mostly confused with 
 - remove degenerate images (min side < 64 px or aspect ratio > 4) from training and retrain;
 - calibrate the confidence on the validation split (e.g. temperature scaling);
 - add field images of real DWCC plastic, which is the proposal's objective O1.
+
+## Confidence calibration (2026-10-18)
+
+The raw model is overconfident, as the on-device evaluation above shows. **Temperature scaling** fixes this: q_i ∝ p_i^(1/T), with T fitted by minimum NLL on the run's **val** split (seven_plastics + visual, broken scrapes removed, n = 279). It is evaluated on the separate **test** split (n = 278). The argmax, and so accuracy, is unchanged.
+
+To reproduce: `python ml/kaggle/build_heldout.py ... --split val` and `python ml/kaggle/calibrate.py ...`.
+
+**T = 4.077**
+
+| Test split (n = 278) | ECE | NLL | Auto-verified (≥ 0.85) | Precision of auto-verified |
+|---|---|---|---|---|
+| Raw | 23.2 | 1.688 | 80% | 77.0% |
+| **Calibrated** | **5.7** | **0.836** | **32%** | **95.5%** |
+
+Confirmed through the app on the device: 89 of 278 batches auto-verified, 85 correct (95.5%), with every class represented. The other 68% go to manual review, which is honest for a model that is weak on PET, PP and PS. Field data (proposal objective O1) should raise both accuracy and the auto-verified share. Re-fit T whenever the model or data changes.
+
+This calibration was fitted on public images only. Recalibrate on field images from the DWCC before relying on it in the field.

@@ -6,6 +6,7 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 
 import '../models/classification_result.dart';
 import '../models/polymer_info.dart';
+import 'confidence_calibration.dart';
 import 'image_preprocessor.dart';
 
 /// On-device polymer classifier.
@@ -24,7 +25,9 @@ class MlService {
   /// Identifies the bundled model in every recorded transaction.
   /// Model v2: YOLOv8s-cls, 7 classes; 76.3% top-1 on held-out
   /// resin-labelled test images (PolyMint_ML/kaggle/results/RESULTS.md).
-  static const String modelVersion = 'polymer7-v2';
+  /// `-cal1`: probabilities are temperature-calibrated (see
+  /// [ConfidenceCalibration]), so record confidences differ from the raw model's.
+  static const String modelVersion = 'polymer7-v2-cal1';
   static const String _modelAsset = 'assets/model/polymer7_v2_float32.tflite';
   static const String _labelsAsset = 'assets/model/labels.txt';
 
@@ -100,7 +103,8 @@ class MlService {
       _interpreter!.run(input, output);
 
       final scores = List<double>.from(output[0]).sublist(0, classes);
-      final probs = _toProbabilities(scores);
+      final probs = ConfidenceCalibration.apply(
+          _toProbabilities(scores), ConfidenceCalibration.polymer7V2Temperature);
       for (var i = 0; i < classes; i++) {
         accumulated[i] += probs[i];
       }

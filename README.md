@@ -2,10 +2,19 @@
 
 **AI-verified plastic recovery & circular-economy credit minting.**
 
-PolyMint turns recovered plastic into verified impact. Point your camera at an
-item, an on-device AI model identifies the polymer (PET, HDPE, PP…), you confirm
-the weight, and the app mints circular-economy credits — tracking the CO₂ you
-helped avoid and your standing on a global exchange leaderboard.
+PolyMint turns recovered plastic into verified impact. You place a batch on the scale and take a
+photo. An on-device AI model identifies the polymer (PET, HDPE, PP…), and the
+**Proof-of-Physical-Presence** check binds the photo to a live, hashed weight reading. Only then
+does the app mint circular-economy credits.
+
+## 🗺️ Project map
+
+| Part | Where | What it is |
+|---|---|---|
+| **Mobile app** | `lib/`, `assets/`, `test/`, `integration_test/` | Flutter app: scan, PoPP weight check, on-device polymer model, minting, log, ranks |
+| **Ledger dashboard** | `dashboard/` | Web dashboard for DWCC operators and auditors over the same Firestore ledger (see `dashboard/README.md`) |
+| **ML** | `ml/` | Training, export and evaluation of the polymer model. Kaggle jobs, benchmark against the base paper, calibration (see `ml/README.md` and `ml/kaggle/results/RESULTS.md`) |
+| **Backend** | `firestore.rules`, `firebase.json` | Append-only `plastic_transactions` ledger; Hosting serves `dashboard/` |
 
 ---
 
@@ -75,8 +84,13 @@ so treat PVC calls with care. See `ml/kaggle/results/RESULTS.md`.
    probability map.
 
 ### Verification gate and ledger record
+Confidences are **temperature-calibrated** (`ConfidenceCalibration`, T = 4.077, fitted on
+validation images with `ml/kaggle/calibrate.py`). The raw model was overconfident: only 77% of its
+"≥ 85%" calls were right. After calibration, **95.5%** of them are right on held-out images, with
+about a third of batches auto-verified.
+
 A record is **`AI_VERIFIED`** only when the minted resin is the model's own pick at
-**≥ 85%** confidence. Otherwise it is **`MANUAL_REVIEW`**: either the model is below the gate or
+**≥ 85%** calibrated confidence. Otherwise it is **`MANUAL_REVIEW`**: either the model is below the gate or
 the user overrode its pick. The result screen says which before minting, and the log shows
 *Review*. Each record also stores:
 - the model's own pick (`ai_polymer`, `ai_confidence`) and `model_version`;

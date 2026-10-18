@@ -9,7 +9,7 @@ import 'fixture_photo.dart';
 /// Runs the bundled model through the real on-device path (asset loading,
 /// labels, preprocessing, tflite_flutter). Expected values come from running
 /// the same photo through PolyMint_ML's TFLite + canonical preprocessing:
-/// LDPE with probability ~1.0.
+/// LDPE, raw probability ~1.0, 0.836 after temperature calibration.
 ///
 ///   `flutter test integration_test -d <device-id>`
 void main() {
@@ -25,7 +25,7 @@ void main() {
 
     expect(result.modelVersion, MlService.modelVersion);
     expect(result.polymer.code, '4-LDPE');
-    expect(result.confidence, greaterThan(0.9));
+    expect(result.confidence, closeTo(0.836, 0.02));
     final total = result.probabilities.values.fold<double>(0, (a, b) => a + b);
     expect(total, closeTo(1.0, 1e-3));
     // ignore: avoid_print

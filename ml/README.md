@@ -45,7 +45,7 @@ python src/verify_parity.py --weights runs/polymer7/weights/best.pt \
 |---|---|
 | `models/polymer_float32.tflite` | **Superseded v0.** `yolov8n-cls`, 6 classes (no PVC), TACO-only. **Val top-1 ≈ 68%**, parity-verified (max prob diff 0.03). |
 | `models/purity_float32.tflite` | **Placeholder** — trained on *synthetic* data. Runs, but means nothing until trained on real clean/mixed/contaminated images. |
-| `polymer7_v2_float32.tflite` (in the app at `assets/model/`; labels and meta in `models/`) | **Shipped in the app (2026-10-18).** YOLOv8s-cls, 7 classes, trained on Kaggle (`kaggle/polymint7/`) with WaDaBa + public resin sets + TACO. **76.3% top-1 / 73.0% macro-F1** on held-out resin-labelled test images; parity verified. Details in `kaggle/results/RESULTS.md`. |
+| `polymer7_v2_float32.tflite` (in the app at `assets/model/`; labels and meta in `models/`) | **Shipped in the app (2026-10-18).** YOLOv8s-cls, 7 classes, trained on Kaggle (`kaggle/polymint7/`) with WaDaBa + public resin sets + TACO. **76.3% top-1 / 73.0% macro-F1** on held-out resin-labelled test images; parity verified. Confidence calibrated with T = 4.077 (`kaggle/calibrate.py`): the ≥ 85% gate is 95.5% precise on held-out images (77% raw). Details in `kaggle/results/RESULTS.md`. |
 | WaDaBa benchmark vs base paper | 99.67% (paper protocol, random split) vs 87.44% (Chazhoor et al. 2022); 83.1% with an object-disjoint split. `kaggle/wadaba_benchmark/`. |
 
 **Why v0 is ~68%, not the 85% target — and how to close the gap:**
