@@ -34,3 +34,38 @@ Sources: WaDaBa (split by object), harshitkandoi visual-plastic set, piaoya seve
 - Exported model: `models/polymer7_v2_float32.tflite` (v8s_all; NHWC [1,224,224,3] → [1,7]; parity diff 0.0000). Labels, in sorted order: HDPE, LDPE, Other, PET, PP, PS, PVC.
 - Weak spots: PVC has only 4 test images, so its recall is unreliable. The web-scraped visual set scores just 54–58%, and its labels are noisy (1,024 of its 2,653 images were dropped as duplicates or label conflicts).
 - This is below the 85% plan target. More public data won't close the gap; domain-matched field images will.
+
+## On-device evaluation through the app (2026-10-18)
+
+This runs the bundled `polymer7-v2` through the **real app pipeline** (Dart `ImagePreprocessor` + `tflite_flutter`, Android emulator) on the run's held-out test images. Images come from seven_plastics (all 7 classes) and the visual-plastic set. WaDaBa and TACO are left out.
+
+**How to reproduce:**
+1. Run `python ml/kaggle/build_heldout.py --downloads dl --out heldout`. It rebuilds the exact 340 test images (0 class mismatches).
+2. Run `flutter build apk --debug -t integration_test/eval_on_device_test.dart` and `adb install -r` the APK.
+3. Push the images into the app:
+   ```
+   tar -cf h.tar -C heldout . && adb push h.tar /data/local/tmp/
+   adb shell "run-as com.example.poly_mint sh -c 'mkdir -p files/eval && cd files/eval && tar -xf -' < /data/local/tmp/h.tar"
+   ```
+4. Launch the app. It writes `files/eval/device_preds.json` and logs per-class counts. Read the file back with `adb shell "run-as com.example.poly_mint cat files/eval/device_preds.json"`.
+
+**App pipeline correctness:** on the 278 real images, the device agrees with the Python reference (same model, same crop and antialiased resize) on **276/278 = 99.3%** of top-1 predictions. Both disagreements are borderline calls below 0.6 confidence. The other **62 held-out images (all from the visual set) are broken scrapes**, such as 3000×32 px strips. On those the two decoders sometimes disagree, which says nothing about the pipeline. Similar images are presumably in the training split too.
+
+**Accuracy per class** (device, 278 clean held-out images, 68.7% overall; seven_plastics 84.0%, visual 60.9%):
+
+| Class | Correct | Main confusion |
+|---|---|---|
+| PET | 35/55 (64%) | → Other |
+| HDPE | 11/12 (92%) | |
+| PVC | 2/4 (50%) | → PP (only 4 test images) |
+| LDPE | 11/14 (79%) | → HDPE |
+| PP | 39/62 (63%) | → PET, Other, PS |
+| PS | 18/42 (43%) | → Other, PP |
+| Other | 75/89 (84%) | |
+
+All 7 classes are recognised, but PET, PP and PS are weak, mostly confused with Other. This is partly the noisy web-scraped labels.
+
+**The confidence gate is overconfident.** Among records the model calls with ≥ 0.85 confidence (AI_VERIFIED), only **76.4%** are correct. Raising the gate helps little: 81.4% at ≥ 0.95 and 85.0% at ≥ 0.99. Before trusting AI_VERIFIED, do the following:
+- remove degenerate images (min side < 64 px or aspect ratio > 4) from training and retrain;
+- calibrate the confidence on the validation split (e.g. temperature scaling);
+- add field images of real DWCC plastic, which is the proposal's objective O1.
