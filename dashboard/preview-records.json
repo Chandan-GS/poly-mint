@@ -1,0 +1,422 @@
+[
+ {
+  "timestamp": "2026-10-18T12:00:00+00:00",
+  "user_id": "preview-0",
+  "user_name": "Preview DWCC Ward 150",
+  "polymer_type": "1-PET",
+  "confidence": 0.88,
+  "weight_kg": 2.21,
+  "credits_minted": 3.31,
+  "co2_saved_kg": 3.31,
+  "geolocation": {
+   "lat": 12.904346177200052,
+   "lng": 77.6121529202584
+  },
+  "status": "verified",
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "1-PET",
+  "ai_confidence": 0.88,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 2.21,
+   "stableWindowMs": 2033,
+   "captureOffsetMs": 148,
+   "sampleHashChain": "1600a35a099950d836f675cc81e74ef5e8e25d940ed904759531985d5d9dc9f8",
+   "sampleCount": 40,
+   "simulated": true,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0000",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-17T18:12:00+00:00",
+  "user_id": "preview-1",
+  "user_name": "Preview DWCC Ward 84",
+  "polymer_type": "2-HDPE",
+  "confidence": 0.869,
+  "weight_kg": 2.83,
+  "credits_minted": 3.4,
+  "co2_saved_kg": 3.96,
+  "geolocation": {
+   "lat": 12.925471151348551,
+   "lng": 77.62961112748032
+  },
+  "status": "verified",
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "2-HDPE",
+  "ai_confidence": 0.869,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 2.83,
+   "stableWindowMs": 885,
+   "captureOffsetMs": 614,
+   "sampleHashChain": "0fd630f1f29d0da9953f48f1a09f76b5a170b33839263059f28c105d1fb17c23",
+   "sampleCount": 17,
+   "simulated": false,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0001",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-17T00:24:00+00:00",
+  "user_id": "preview-0",
+  "user_name": "Preview DWCC Ward 150",
+  "polymer_type": "5-PP",
+  "confidence": 0.695,
+  "weight_kg": 3.63,
+  "credits_minted": 3.63,
+  "co2_saved_kg": 5.81,
+  "geolocation": {
+   "lat": 12.933399893876226,
+   "lng": 77.58799048898649
+  },
+  "status": "verified",
+  "verification": "MANUAL_REVIEW",
+  "ai_polymer": "5-PP",
+  "ai_confidence": 0.695,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 3.63,
+   "stableWindowMs": 1152,
+   "captureOffsetMs": 145,
+   "sampleHashChain": "d0eda82f8f6d05584ef8aa38922766581e27a1c08a6a63ec24ede6a46b4cb242",
+   "sampleCount": 23,
+   "simulated": false,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0002",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-16T06:36:00+00:00",
+  "user_id": "preview-1",
+  "user_name": "Preview DWCC Ward 84",
+  "polymer_type": "6-PS",
+  "confidence": 0.873,
+  "weight_kg": 4.22,
+  "credits_minted": 3.38,
+  "co2_saved_kg": 7.6,
+  "geolocation": {
+   "lat": 12.911272261607229,
+   "lng": 77.58584583455968
+  },
+  "status": "verified",
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "6-PS",
+  "ai_confidence": 0.873,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 4.22,
+   "stableWindowMs": 1869,
+   "captureOffsetMs": 1358,
+   "sampleHashChain": "ae2eb1547f15052434b9b5df9e7769b10f4205b4907a70c31012f037b64ce422",
+   "sampleCount": 37,
+   "simulated": true,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0003",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-15T12:48:00+00:00",
+  "user_id": "preview-0",
+  "user_name": "Preview DWCC Ward 150",
+  "polymer_type": "4-LDPE",
+  "confidence": 0.961,
+  "weight_kg": 3.38,
+  "credits_minted": 2.03,
+  "co2_saved_kg": 4.39,
+  "geolocation": {
+   "lat": 12.955406483018331,
+   "lng": 77.60169494135667
+  },
+  "status": "verified",
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "4-LDPE",
+  "ai_confidence": 0.961,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 3.38,
+   "stableWindowMs": 1653,
+   "captureOffsetMs": 1249,
+   "sampleHashChain": "930d6eaf14f4733f3e7d1bfbc7a2ea20b2f14c942e05319acb5c74273f98e277",
+   "sampleCount": 33,
+   "simulated": false,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0004",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-14T19:00:00+00:00",
+  "user_id": "preview-1",
+  "user_name": "Preview DWCC Ward 84",
+  "polymer_type": "3-PVC",
+  "confidence": 0.07,
+  "weight_kg": 2.08,
+  "credits_minted": 1.04,
+  "co2_saved_kg": 2.29,
+  "geolocation": {
+   "lat": 12.917276265893411,
+   "lng": 77.63881049084955
+  },
+  "status": "verified",
+  "verification": "MANUAL_REVIEW",
+  "ai_polymer": "1-PET",
+  "ai_confidence": 0.924,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 2.08,
+   "stableWindowMs": 1403,
+   "captureOffsetMs": 969,
+   "sampleHashChain": "eeeacbe226e875555790f82ec1d3fcff2a3af4d46b0a18e8830e07bc1e398f10",
+   "sampleCount": 28,
+   "simulated": false,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0005",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-14T01:12:00+00:00",
+  "user_id": "preview-0",
+  "user_name": "Preview DWCC Ward 150",
+  "polymer_type": "7-Other",
+  "confidence": 0.865,
+  "weight_kg": 3.14,
+  "credits_minted": 0.63,
+  "co2_saved_kg": 2.51,
+  "geolocation": {
+   "lat": 12.945874251972768,
+   "lng": 77.61438155641665
+  },
+  "status": "verified",
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "7-Other",
+  "ai_confidence": 0.865,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 3.14,
+   "stableWindowMs": 2068,
+   "captureOffsetMs": 208,
+   "sampleHashChain": "7f26144b98289fcd59a54a7bb1fee08f571242425051c1ccd17f9acae01f5057",
+   "sampleCount": 41,
+   "simulated": true,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0006",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-13T07:24:00+00:00",
+  "user_id": "preview-1",
+  "user_name": "Preview DWCC Ward 84",
+  "polymer_type": "1-PET",
+  "confidence": 0.919,
+  "weight_kg": 3.65,
+  "credits_minted": 5.47,
+  "co2_saved_kg": 5.47,
+  "geolocation": {
+   "lat": 12.928445900245178,
+   "lng": 77.61984913232848
+  },
+  "status": "verified",
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "1-PET",
+  "ai_confidence": 0.919,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 3.65,
+   "stableWindowMs": 891,
+   "captureOffsetMs": 326,
+   "sampleHashChain": "ae658f33fe3b890b93f448b3a5aa3c814f426dcbb394fb36bb2d420f0f88080b",
+   "sampleCount": 17,
+   "simulated": false,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0007",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-12T13:36:00+00:00",
+  "user_id": "preview-0",
+  "user_name": "Preview DWCC Ward 150",
+  "polymer_type": "2-HDPE",
+  "confidence": 0.897,
+  "weight_kg": 5.0,
+  "credits_minted": 6.0,
+  "co2_saved_kg": 7.0,
+  "geolocation": {
+   "lat": 12.920820315341306,
+   "lng": 77.63643891399876
+  },
+  "status": "verified",
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "2-HDPE",
+  "ai_confidence": 0.897,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 5.0,
+   "stableWindowMs": 1490,
+   "captureOffsetMs": 1419,
+   "sampleHashChain": "c4aaeac137dc76fb0f17a3007e62aa0a1df9fd789c6539382b0537e65affb229",
+   "sampleCount": 29,
+   "simulated": false,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0008",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-11T19:48:00+00:00",
+  "user_id": "preview-1",
+  "user_name": "Preview DWCC Ward 84",
+  "polymer_type": "5-PP",
+  "confidence": 0.777,
+  "weight_kg": 2.01,
+  "credits_minted": 2.01,
+  "co2_saved_kg": 3.22,
+  "geolocation": {
+   "lat": 12.955008973570804,
+   "lng": 77.6097904019418
+  },
+  "status": "verified",
+  "verification": "MANUAL_REVIEW",
+  "ai_polymer": "5-PP",
+  "ai_confidence": 0.777,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 2.01,
+   "stableWindowMs": 1514,
+   "captureOffsetMs": 850,
+   "sampleHashChain": "d1bc52d9230d977ee22571594720771f8ca8181166d2287672fdf2022a96fb1a",
+   "sampleCount": 30,
+   "simulated": true,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0009",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-11T02:00:00+00:00",
+  "user_id": "preview-0",
+  "user_name": "Preview DWCC Ward 150",
+  "polymer_type": "6-PS",
+  "confidence": 0.932,
+  "weight_kg": 2.81,
+  "credits_minted": 2.25,
+  "co2_saved_kg": 5.06,
+  "geolocation": {
+   "lat": 12.95918802486007,
+   "lng": 77.62096338356325
+  },
+  "status": "verified",
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "6-PS",
+  "ai_confidence": 0.932,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 2.81,
+   "stableWindowMs": 2146,
+   "captureOffsetMs": 900,
+   "sampleHashChain": "3b61867626bb7dbd2d1c9af0153e7c2a26a2c0bd3b1287fff52ddf5d616499c9",
+   "sampleCount": 42,
+   "simulated": false,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0010",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-10T08:12:00+00:00",
+  "user_id": "preview-1",
+  "user_name": "Preview DWCC Ward 84",
+  "polymer_type": "4-LDPE",
+  "confidence": 0.862,
+  "weight_kg": 4.09,
+  "credits_minted": 2.45,
+  "co2_saved_kg": 5.32,
+  "geolocation": {
+   "lat": 12.915764797157912,
+   "lng": 77.5802456162031
+  },
+  "status": "verified",
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "4-LDPE",
+  "ai_confidence": 0.862,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 4.09,
+   "stableWindowMs": 1906,
+   "captureOffsetMs": 423,
+   "sampleHashChain": "20203626f3fe39c0519088f590fbbd119c1caaf75e8766ed88daf4016b4013ef",
+   "sampleCount": 38,
+   "simulated": false,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0011",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-09T14:24:00+00:00",
+  "user_id": "preview-0",
+  "user_name": "Preview DWCC Ward 150",
+  "polymer_type": "3-PVC",
+  "confidence": 0.927,
+  "weight_kg": 4.27,
+  "credits_minted": 2.13,
+  "co2_saved_kg": 4.7,
+  "geolocation": {
+   "lat": 12.94057200494697,
+   "lng": 77.58323957359343
+  },
+  "status": "verified",
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "3-PVC",
+  "ai_confidence": 0.927,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 4.27,
+   "stableWindowMs": 1964,
+   "captureOffsetMs": 1391,
+   "sampleHashChain": "8f2c6ec8cc4169a3ae3a2b7fdfe01893f3aed0b6c7ac1491def88334e647cb8f",
+   "sampleCount": 39,
+   "simulated": true,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0012",
+  "demo_seed": "preview"
+ },
+ {
+  "timestamp": "2026-10-08T20:36:00+00:00",
+  "user_id": "preview-1",
+  "user_name": "Preview DWCC Ward 84",
+  "polymer_type": "7-Other",
+  "confidence": 0.912,
+  "weight_kg": 2.6,
+  "credits_minted": 0.52,
+  "co2_saved_kg": 2.08,
+  "geolocation": {
+   "lat": 12.938057373941142,
+   "lng": 77.58373486929712
+  },
+  "status": "verified",
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "7-Other",
+  "ai_confidence": 0.912,
+  "model_version": "polymer7-v2",
+  "popp": {
+   "settleDeltaKg": 2.6,
+   "stableWindowMs": 912,
+   "captureOffsetMs": 543,
+   "sampleHashChain": "99c94309570dc1951c2442f9298cb3a570ccec313571810afc132d0d113db17d",
+   "sampleCount": 18,
+   "simulated": false,
+   "verdict": "PASS"
+  },
+  "client_id": "preview-0013",
+  "demo_seed": "preview"
+ }
+]
