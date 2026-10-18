@@ -2,11 +2,11 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 import '../models/classification_result.dart';
 import '../models/polymer_info.dart';
+import 'image_preprocessor.dart';
 
 /// On-device polymer classifier.
 ///
@@ -16,7 +16,18 @@ import '../models/polymer_info.dart';
 ///    stable soft-max, so "confidence" is meaningful.
 ///  * Returns a ranked top-K candidate list (enables manual correction).
 ///  * Optional multi-frame averaging to smooth out a single bad frame.
+///  * Matches the exported YOLO classifier's contract: inputs scaled to
+///    `[0, 1]`, and outputs that are already probabilities are not
+///    soft-maxed a second time (which flattened every result to ~31%).
+///  * Preprocesses frames exactly like training (see [ImagePreprocessor]).
 class MlService {
+  /// Identifies the bundled model in every recorded transaction.
+  /// Model v2: YOLOv8s-cls, 7 classes; 76.3% top-1 on held-out
+  /// resin-labelled test images (PolyMint_ML/kaggle/results/RESULTS.md).
+  static const String modelVersion = 'polymer7-v2';
+  static const String _modelAsset = 'assets/model/polymer7_v2_float32.tflite';
+  static const String _labelsAsset = 'assets/model/labels.txt';
+
   Interpreter? _interpreter;
   List<String> _labels = [];
   int _inputWidth = 224;
@@ -29,7 +40,7 @@ class MlService {
   Future<void> load() async {
     if (isReady) return;
     _interpreter = await Interpreter.fromAsset(
-      'assets/best_float32.tflite',
+      _modelAsset,
       options: InterpreterOptions()..threads = 2,
     );
 
@@ -39,14 +50,22 @@ class MlService {
       _inputHeight = inputShape[1];
       _inputWidth = inputShape[2];
     }
+    if (_inputHeight != _inputWidth) {
+      throw StateError('Expected a square model input, got '
+          '${_inputHeight}x$_inputWidth.');
+    }
     _outputClasses = _interpreter!.getOutputTensor(0).shape.last;
 
-    final raw = await rootBundle.loadString('assets/labels.txt');
+    final raw = await rootBundle.loadString(_labelsAsset);
     _labels = raw
         .split('\n')
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
         .toList();
+    if (_outputClasses != 0 && _labels.length != _outputClasses) {
+      throw StateError('labels.txt has ${_labels.length} entries but the model '
+          'outputs $_outputClasses classes.');
+    }
   }
 
   /// Classify one or more frames of the same object. Passing several frames
@@ -73,15 +92,15 @@ class MlService {
     var usedFrames = 0;
 
     for (final bytes in frames) {
-      final input = _preprocess(bytes);
+      final input = ImagePreprocessor.toTensor(bytes, _inputWidth);
       if (input == null) continue;
 
       final output = List.filled(1 * _outputClasses, 0.0)
           .reshape([1, _outputClasses]);
       _interpreter!.run(input, output);
 
-      final logits = List<double>.from(output[0]).sublist(0, classes);
-      final probs = _softmax(logits);
+      final scores = List<double>.from(output[0]).sublist(0, classes);
+      final probs = _toProbabilities(scores);
       for (var i = 0; i < classes; i++) {
         accumulated[i] += probs[i];
       }
@@ -111,43 +130,21 @@ class MlService {
     sw.stop();
     return ClassificationResult(
       predictions: predictions,
+      probabilities: {
+        for (var i = 0; i < classes; i++) _labels[i]: mean[i],
+      },
+      modelVersion: modelVersion,
       inferenceTime: sw.elapsed,
     );
   }
 
-  /// Decode → center-crop square → resize → normalize to [-1, 1].
-  /// Returns a `[1, H, W, 3]` tensor, or null if the frame can't be decoded.
-  List<List<List<List<double>>>>? _preprocess(Uint8List bytes) {
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) return null;
-
-    final cropSize =
-        decoded.width < decoded.height ? decoded.width : decoded.height;
-    final offsetX = (decoded.width - cropSize) ~/ 2;
-    final offsetY = (decoded.height - cropSize) ~/ 2;
-
-    final cropped = img.copyCrop(
-      decoded,
-      x: offsetX,
-      y: offsetY,
-      width: cropSize,
-      height: cropSize,
-    );
-    final resized =
-        img.copyResize(cropped, width: _inputWidth, height: _inputHeight);
-
-    return [
-      List.generate(_inputHeight, (y) {
-        return List.generate(_inputWidth, (x) {
-          final p = resized.getPixel(x, y);
-          return [
-            (p.r - 127.5) / 127.5,
-            (p.g - 127.5) / 127.5,
-            (p.b - 127.5) / 127.5,
-          ];
-        });
-      }),
-    ];
+  /// The exported model already ends in a soft-max; only apply one when the
+  /// scores are raw logits.
+  List<double> _toProbabilities(List<double> scores) {
+    final sum = scores.fold<double>(0, (a, b) => a + b);
+    final isDistribution =
+        scores.every((v) => v >= 0 && v <= 1) && (sum - 1).abs() < 1e-3;
+    return isDistribution ? scores : _softmax(scores);
   }
 
   /// Numerically stable soft-max.

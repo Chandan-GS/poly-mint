@@ -17,9 +17,11 @@ class TransactionTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final polymer = PolymerCatalog.lookup(txn.polymerCode);
 
+    final needsReview = txn.verification == VerificationMethod.manualReview;
     final (String statusText, Color statusColor) = switch (txn.status) {
       TransactionStatus.pendingSync => ('Pending', AppColors.review),
       TransactionStatus.flagged => ('Review', AppColors.review),
+      TransactionStatus.verified when needsReview => ('Review', AppColors.review),
       TransactionStatus.verified => ('Verified', AppColors.accent),
     };
 

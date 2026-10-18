@@ -19,12 +19,22 @@ class PolymerPrediction extends Equatable {
 class ClassificationResult extends Equatable {
   final List<PolymerPrediction> predictions;
 
+  /// Probability of every class the model knows, keyed by resin code
+  /// (e.g. `1-PET`), so the confidence of a manually chosen resin can be
+  /// recorded truthfully.
+  final Map<String, double> probabilities;
+
+  /// Version tag of the model that produced this result.
+  final String modelVersion;
+
   /// Wall-clock inference time, surfaced for transparency/debugging.
   final Duration inferenceTime;
 
   const ClassificationResult({
     required this.predictions,
     required this.inferenceTime,
+    this.probabilities = const {},
+    this.modelVersion = 'unknown',
   });
 
   PolymerPrediction get top => predictions.first;
@@ -47,6 +57,14 @@ class ClassificationResult extends Equatable {
 
   bool get isAmbiguous => margin < 0.15;
 
+  /// Model probability for [code]; 0 if the model never considered it.
+  double confidenceFor(String code) => probabilities[code] ??
+      predictions
+          .where((p) => p.polymer.code == code)
+          .map((p) => p.confidence)
+          .fold(0.0, (a, b) => a > b ? a : b);
+
   @override
-  List<Object?> get props => [predictions, inferenceTime];
+  List<Object?> get props =>
+      [predictions, probabilities, modelVersion, inferenceTime];
 }

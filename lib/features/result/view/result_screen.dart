@@ -9,6 +9,7 @@ import '../../../core/widgets/app_widgets.dart';
 import '../../../data/models/classification_result.dart';
 import '../../../data/models/polymer_info.dart';
 import '../../../data/models/popp_proof.dart';
+import '../../../data/models/waste_transaction.dart';
 import '../../../data/services/location_service.dart';
 import '../../../data/services/preferences_service.dart';
 import '../../../data/services/transaction_repository.dart';
@@ -28,6 +29,7 @@ class ResultScreen extends StatelessWidget {
         location: sl<LocationService>(),
         prefs: sl<PreferencesService>(),
         weightKg: proof.weightKg,
+        proof: proof,
       ),
       child: _ResultView(result: result, proof: proof),
     );
@@ -62,6 +64,8 @@ class _ResultView extends StatelessWidget {
               _ClassificationPanel(result: result),
               const SizedBox(height: 12),
               _CandidateChips(result: result),
+              const SizedBox(height: 12),
+              _VerificationNote(result: result),
               const SizedBox(height: 22),
               const SectionLabel('Physical check'),
               _ProofPanel(proof: proof),
@@ -79,6 +83,8 @@ class _ResultView extends StatelessWidget {
 
   void _showSuccess(BuildContext context, MintingState state) {
     final online = state.status == MintingStatus.mintedOnline;
+    final review =
+        state.verificationFor(result) == VerificationMethod.manualReview;
     final scheme = Theme.of(context).colorScheme;
     showModalBottomSheet<void>(
       context: context,
@@ -91,7 +97,9 @@ class _ResultView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const StatusTag(label: 'Minted', color: AppColors.accent),
+            StatusTag(
+                label: review ? 'Minted · review' : 'Minted',
+                color: review ? AppColors.review : AppColors.accent),
             const SizedBox(height: 14),
             Text.rich(TextSpan(
               text: Formatters.credits(state.creditsPreview),
@@ -104,9 +112,15 @@ class _ResultView extends StatelessWidget {
             )),
             const SizedBox(height: 10),
             Text(
-              online
-                  ? 'Verified and recorded to the exchange ledger.'
-                  : 'Saved offline — syncs automatically when you reconnect.',
+              [
+                review
+                    ? 'Flagged for manual review: the material was not confirmed '
+                        'by the AI at the 85% gate.'
+                    : 'AI-verified.',
+                online
+                    ? 'Recorded to the exchange ledger.'
+                    : 'Saved offline — syncs automatically when you reconnect.',
+              ].join(' '),
               style: AppType.body.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 22),
@@ -193,6 +207,42 @@ class _ClassificationPanel extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Says, before minting, whether the record will be AI-verified or sent for
+/// manual review, and why.
+class _VerificationNote extends StatelessWidget {
+  final ClassificationResult result;
+  const _VerificationNote({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final selected =
+        context.select((MintingCubit c) => c.state.selectedPolymer);
+    final review =
+        verificationOf(result, selected) == VerificationMethod.manualReview;
+    final overridden = selected.code != result.polymer.code;
+    final color = review ? AppColors.review : AppColors.accent;
+    final reason = !review
+        ? 'Material confirmed by the AI at '
+            '${Formatters.percent(result.confidence)}.'
+        : overridden
+            ? 'You changed the material from the AI pick '
+                '(${result.polymer.shortName}).'
+            : 'AI confidence is below the 85% gate.';
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        StatusTag(label: review ? 'Manual review' : 'AI-verified', color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(reason,
+              style: AppType.caption.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        ),
+      ],
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
 
 class GeoPoint {
@@ -23,9 +25,17 @@ class LocationService {
         return null;
       }
 
-      final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
-      );
+      // A cold GPS can take minutes (or never answer indoors); never let it
+      // block minting. Fall back to the last known fix.
+      Position? pos;
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium,
+        ).timeout(const Duration(seconds: 6));
+      } on TimeoutException {
+        pos = await Geolocator.getLastKnownPosition();
+      }
+      if (pos == null) return null;
       return GeoPoint(pos.latitude, pos.longitude);
     } catch (_) {
       return null;

@@ -3,6 +3,24 @@ import 'package:equatable/equatable.dart';
 
 enum TransactionStatus { verified, pendingSync, flagged }
 
+/// How the polymer on a record was decided (the ML contract's `status`).
+enum VerificationMethod {
+  /// The model's own top pick, at or above the confidence gate.
+  aiVerified('AI_VERIFIED'),
+
+  /// Below the confidence gate, or the user overrode the model's pick.
+  manualReview('MANUAL_REVIEW'),
+
+  /// Records written before verification was tracked.
+  unknown('UNKNOWN');
+
+  const VerificationMethod(this.wire);
+  final String wire;
+
+  static VerificationMethod fromWire(dynamic raw) => VerificationMethod.values
+      .firstWhere((v) => v.wire == raw, orElse: () => VerificationMethod.unknown);
+}
+
 /// A recorded plastic-recovery event and the credits it minted.
 ///
 /// Serialises to/from Firestore and to a plain JSON map for the offline queue.
@@ -20,6 +38,18 @@ class WasteTransaction extends Equatable {
   final DateTime timestamp;
   final TransactionStatus status;
 
+  final VerificationMethod verification;
+
+  /// The model's own top pick and its probability, kept even when the user
+  /// recorded a different resin.
+  final String? aiPolymerCode;
+  final double? aiConfidence;
+  final String? modelVersion;
+
+  /// The Proof-of-Physical-Presence behind this record (`PoppProof.toJson`),
+  /// stored so an auditor can re-check the weighing, not just the credit.
+  final Map<String, dynamic>? popp;
+
   /// True while this record still lives only in the local offline queue.
   final bool isLocalOnly;
 
@@ -36,6 +66,11 @@ class WasteTransaction extends Equatable {
     required this.lng,
     required this.timestamp,
     required this.status,
+    this.verification = VerificationMethod.unknown,
+    this.aiPolymerCode,
+    this.aiConfidence,
+    this.modelVersion,
+    this.popp,
     this.isLocalOnly = false,
   });
 
@@ -56,6 +91,11 @@ class WasteTransaction extends Equatable {
       lng: lng,
       timestamp: timestamp,
       status: status ?? this.status,
+      verification: verification,
+      aiPolymerCode: aiPolymerCode,
+      aiConfidence: aiConfidence,
+      modelVersion: modelVersion,
+      popp: popp,
       isLocalOnly: isLocalOnly ?? this.isLocalOnly,
     );
   }
@@ -73,6 +113,11 @@ class WasteTransaction extends Equatable {
             ? {'lat': lat, 'lng': lng}
             : null,
         'status': status.name,
+        'verification': verification.wire,
+        'ai_polymer': aiPolymerCode,
+        'ai_confidence': aiConfidence,
+        'model_version': modelVersion,
+        'popp': popp,
         'client_id': id,
         'timestamp': FieldValue.serverTimestamp(),
       };
@@ -91,6 +136,11 @@ class WasteTransaction extends Equatable {
         'lng': lng,
         'timestamp': timestamp.toIso8601String(),
         'status': status.name,
+        'verification': verification.wire,
+        'ai_polymer': aiPolymerCode,
+        'ai_confidence': aiConfidence,
+        'model_version': modelVersion,
+        'popp': popp,
       };
 
   factory WasteTransaction.fromJson(Map<String, dynamic> json) {
@@ -108,6 +158,11 @@ class WasteTransaction extends Equatable {
       timestamp:
           DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime(2020),
       status: _statusFrom(json['status']),
+      verification: VerificationMethod.fromWire(json['verification']),
+      aiPolymerCode: json['ai_polymer'] as String?,
+      aiConfidence: (json['ai_confidence'] as num?)?.toDouble(),
+      modelVersion: json['model_version'] as String?,
+      popp: (json['popp'] as Map?)?.cast<String, dynamic>(),
       isLocalOnly: true,
     );
   }
@@ -130,6 +185,11 @@ class WasteTransaction extends Equatable {
       lng: (geo?['lng'] as num?)?.toDouble(),
       timestamp: ts is Timestamp ? ts.toDate() : DateTime.now(),
       status: _statusFrom(data['status']),
+      verification: VerificationMethod.fromWire(data['verification']),
+      aiPolymerCode: data['ai_polymer'] as String?,
+      aiConfidence: (data['ai_confidence'] as num?)?.toDouble(),
+      modelVersion: data['model_version'] as String?,
+      popp: (data['popp'] as Map?)?.cast<String, dynamic>(),
     );
   }
 

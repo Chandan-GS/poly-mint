@@ -10,8 +10,10 @@ field is the resin code:
     a01 PET   a02 HDPE (PE-HD)   a03 PVC   a04 LDPE (PE-LD)   a05 PP   a06 PS
 
 This script extracts the downloaded zips and copies each image into
-<out>/<CLASS>/ so prepare_dataset.py can split it. (There is no `a07/Other` in
-WaDaBa — get the Other class from TACO.)
+<out>/<CLASS>/ so prepare_dataset.py can split it. The released archives contain
+only a01 PET (2,200), a02 HDPE (600), a05 PP (640), a06 PS (520) and a07 Other
+(40, a single object) — there are no PVC or LDPE images, and each of the 100
+objects is photographed ~40 times, so split by object (the 4-digit prefix).
 
 Usage
 -----
@@ -26,7 +28,7 @@ from pathlib import Path
 
 A_TO_CLASS = {
     "01": "PET", "02": "HDPE", "03": "PVC",
-    "04": "LDPE", "05": "PP", "06": "PS",
+    "04": "LDPE", "05": "PP", "06": "PS", "07": "Other",
 }
 A_RE = re.compile(r"_a(\d{2})")
 
@@ -71,7 +73,7 @@ def main():
 
     print(f"\nWaDaBa -> {out}")
     total = 0
-    for cls in ["PET", "HDPE", "PVC", "LDPE", "PP", "PS"]:
+    for cls in ["PET", "HDPE", "PVC", "LDPE", "PP", "PS", "Other"]:
         print(f"  {cls:<6}{counts.get(cls,0):>6}")
         total += counts.get(cls, 0)
     print(f"  {'TOTAL':<6}{total:>6}")

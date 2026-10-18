@@ -1,0 +1,13 @@
+{
+  "id": "chandancgs/polymint-wadaba-benchmark",
+  "title": "polymint-wadaba-benchmark",
+  "code_file": "wadaba_benchmark.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["anshagarwal2616/wadaba-plastic"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

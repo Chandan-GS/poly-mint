@@ -29,6 +29,20 @@ except ImportError:
     raise SystemExit("ultralytics is required: pip install -r requirements.txt")
 
 
+def _input_shape(tflite_path: Path) -> list:
+    try:
+        from ai_edge_litert.interpreter import Interpreter
+    except ImportError:
+        from tensorflow.lite import Interpreter
+    interp = Interpreter(model_path=str(tflite_path))
+    return list(interp.get_input_details()[0]["shape"])
+
+
+def _is_nhwc(tflite_path: Path) -> bool:
+    shape = _input_shape(tflite_path)
+    return len(shape) == 4 and shape[3] == 3
+
+
 def export_via_onnx2tf(weights: Path, imgsz: int) -> Path:
     """Robust fallback: PT -> ONNX -> (onnx2tf) -> float32 .tflite.
 
@@ -91,6 +105,10 @@ def main():
             src = cands[0] if cands else None
     except Exception as e:
         print(f"native tflite export failed ({type(e).__name__}); falling back to onnx2tf")
+    # Ultralytics >= 8.4 can emit an NCHW [1,3,H,W] graph; the app feeds NHWC.
+    if src is not None and not _is_nhwc(src):
+        print(f"native export is not NHWC ({_input_shape(src)}); falling back to onnx2tf")
+        src = None
     if src is None:
         if args.int8:
             raise SystemExit("int8 fallback not implemented; use native export for int8")

@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../data/models/classification_result.dart';
 import '../../../data/models/polymer_info.dart';
+import '../../../data/models/popp_proof.dart';
 import '../../../data/models/waste_transaction.dart';
 import '../../../data/services/location_service.dart';
 import '../../../data/services/preferences_service.dart';
@@ -28,6 +29,10 @@ class MintingState extends Equatable {
   });
 
   double get creditsPreview => weightKg * selectedPolymer.creditRate;
+
+  /// Whether this record will be AI-verified or sent for manual review.
+  VerificationMethod verificationFor(ClassificationResult result) =>
+      verificationOf(result, selectedPolymer);
   double get co2Preview => weightKg * selectedPolymer.co2SavedPerKg;
   bool get canMint => weightKg > 0 && status != MintingStatus.minting;
 
@@ -49,6 +54,16 @@ class MintingState extends Equatable {
   List<Object?> get props => [status, selectedPolymer.code, weightKg, error];
 }
 
+/// AI-verified only when the recorded resin is the model's own pick and the
+/// model is at or above the confidence gate; everything else needs review.
+VerificationMethod verificationOf(
+    ClassificationResult result, PolymerInfo recorded) {
+  final isAiPick = recorded.code == result.polymer.code;
+  return isAiPick && result.isConfident
+      ? VerificationMethod.aiVerified
+      : VerificationMethod.manualReview;
+}
+
 /// Handles confirming the polymer, computing credits/CO₂ and writing the
 /// transaction through the offline-first repository.
 class MintingCubit extends Cubit<MintingState> {
@@ -58,7 +73,9 @@ class MintingCubit extends Cubit<MintingState> {
     required LocationService location,
     required PreferencesService prefs,
     double weightKg = 0,
+    PoppProof? proof,
   })  : _result = result,
+        _proof = proof,
         _repo = repo,
         _location = location,
         _prefs = prefs,
@@ -70,6 +87,7 @@ class MintingCubit extends Cubit<MintingState> {
         ));
 
   final ClassificationResult _result;
+  final PoppProof? _proof;
   final TransactionRepository _repo;
   final LocationService _location;
   final PreferencesService _prefs;
@@ -99,8 +117,9 @@ class MintingCubit extends Cubit<MintingState> {
       userId: _prefs.userId,
       userName: _prefs.displayName,
       polymerCode: polymer.code,
-      // If the user manually overrode the AI pick, record full confidence.
-      confidence: polymer.code == _result.polymer.code ? _result.confidence : 1.0,
+      // The model's probability for the resin actually recorded, so a manual
+      // override never shows up as a confident AI call.
+      confidence: _result.confidenceFor(polymer.code),
       weightKg: state.weightKg,
       creditsMinted: state.creditsPreview,
       co2SavedKg: state.co2Preview,
@@ -108,6 +127,11 @@ class MintingCubit extends Cubit<MintingState> {
       lng: geo?.lng,
       timestamp: DateTime.now(),
       status: TransactionStatus.verified,
+      verification: verificationOf(_result, polymer),
+      aiPolymerCode: _result.polymer.code,
+      aiConfidence: _result.confidence,
+      modelVersion: _result.modelVersion,
+      popp: _proof?.toJson(),
     );
 
     try {

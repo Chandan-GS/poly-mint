@@ -43,15 +43,16 @@ python src/verify_parity.py --weights runs/polymer7/weights/best.pt \
 
 | Artifact | State |
 |---|---|
-| `models/polymer_float32.tflite` | **Shipped v0.** `yolov8n-cls`, 6 classes (no PVC), TACO-only. **Val top-1 ≈ 68%**, parity-verified (max prob diff 0.03). |
+| `models/polymer_float32.tflite` | **Superseded v0.** `yolov8n-cls`, 6 classes (no PVC), TACO-only. **Val top-1 ≈ 68%**, parity-verified (max prob diff 0.03). |
 | `models/purity_float32.tflite` | **Placeholder** — trained on *synthetic* data. Runs, but means nothing until trained on real clean/mixed/contaminated images. |
-| 7-class model (`configs/polymer7.yaml`) | **Pipeline ready, not fully trained.** A partial 14-epoch run scored 64% (undertrained). Run `train.py` to convergence to finish it — this is the recommended next step. |
+| `polymer7_v2_float32.tflite` (in the app at `assets/model/`; labels and meta in `models/`) | **Shipped in the app (2026-10-18).** YOLOv8s-cls, 7 classes, trained on Kaggle (`kaggle/polymint7/`) with WaDaBa + public resin sets + TACO. **76.3% top-1 / 73.0% macro-F1** on held-out resin-labelled test images; parity verified. Details in `kaggle/results/RESULTS.md`. |
+| WaDaBa benchmark vs base paper | 99.67% (paper protocol, random split) vs 87.44% (Chazhoor et al. 2022); 83.1% with an object-disjoint split. `kaggle/wadaba_benchmark/`. |
 
 **Why v0 is ~68%, not the 85% target — and how to close the gap:**
 - **TACO labels by *object*, not resin** — a "bottle" → PET even if it's HDPE, so labels are noisy.
 - **PVC is scarce** — TACO has none; the HF resin set adds only 24 PVC images. This class stays weak until more PVC data exists.
 - **Class imbalance** — handled with `prepare_dataset.py --cap`, but small classes still hurt.
-- **Biggest lever = more resin-labelled data.** The two auto-downloadable sources here get you a real v0; **WaDaBa** (4k resin-labelled images, incl. lots of PVC) is the clean win but is **license-gated** — see [Datasets](#datasets).
+- **Biggest lever = more resin-labelled data.** The two auto-downloadable sources here get you a real v0; **WaDaBa** (4,000 resin-labelled images of 100 objects: PET, HDPE, PP, PS and Other, with **no PVC or LDPE**) is **license-gated**, but a public Kaggle re-upload exists (used in `kaggle/`) — see [Datasets](#datasets).
 
 ---
 
@@ -127,7 +128,7 @@ unpinned first (`pip install onnxsim`) so it grabs the prebuilt wheel.
 |---|---|---|---|
 | **HF `plastic-recycling-codes`** | ✅ none | ✅ real resin labels, **incl. PVC** | `src/download_hf_resin.py` (~606 imgs) |
 | **TACO** | ✅ none | ⚠️ by object (approximated) | `src/download_taco.py` (~1,557 crops, no PVC) |
-| **WaDaBa** | ❌ license form + emailed password | ✅✅ 4,000 resin-labelled, lots of PVC | see below |
+| **WaDaBa** | ❌ license form + emailed password | ✅✅ 4,000 resin-labelled (100 objects × 40 shots); PET/HDPE/PP/PS/Other only, **no PVC or LDPE** | see below |
 | **Synthetic** | ✅ none | ❌ fake (plumbing only) | `src/make_synthetic_dataset.py` |
 | **Self-collected** | — | ✅ ground truth | label into class folders, ingest with `--identity-map` |
 

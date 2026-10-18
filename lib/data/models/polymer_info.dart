@@ -7,7 +7,7 @@ import '../../core/theme/app_colors.dart';
 /// impact factors and the recycling guidance shown throughout the app.
 @immutable
 class PolymerInfo {
-  /// Resin code label exactly as it appears in `assets/labels.txt`, e.g. `1-PET`.
+  /// Resin code label exactly as it appears in `assets/model/labels.txt`, e.g. `1-PET`.
   final String code;
 
   /// Human-friendly full name, e.g. "Polyethylene Terephthalate".

@@ -1,0 +1,18 @@
+{
+  "id": "chandancgs/polymint-7class",
+  "title": "polymint-7class",
+  "code_file": "polymint7.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "anshagarwal2616/wadaba-plastic",
+    "harshitkandoi7850/dataset-for-visual-plastic-type-recognition",
+    "piaoya/plastic-recycling-codes",
+    "kneroma/tacotrashdataset"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}
