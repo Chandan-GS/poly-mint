@@ -34,33 +34,39 @@ class SettingsState extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [themeMode, displayName, highAccuracyMode, sensorMode];
+  List<Object?> get props => [
+    themeMode,
+    displayName,
+    highAccuracyMode,
+    sensorMode,
+  ];
 }
 
 /// Owns user-facing settings and persists every change immediately.
 class SettingsCubit extends Cubit<SettingsState> {
   SettingsCubit(this._prefs)
-      : super(SettingsState(
+    : super(
+        SettingsState(
           themeMode: _decodeTheme(_prefs.themeMode),
           displayName: _prefs.displayName,
           highAccuracyMode: _prefs.highAccuracyMode,
           sensorMode: _prefs.sensorMode,
-        ));
+        ),
+      );
 
   final PreferencesService _prefs;
 
   static ThemeMode _decodeTheme(String raw) => switch (raw) {
-        'light' => ThemeMode.light,
-        'dark' => ThemeMode.dark,
-        _ => ThemeMode.system,
-      };
+    'light' => ThemeMode.light,
+    'dark' => ThemeMode.dark,
+    _ => ThemeMode.system,
+  };
 
   static String _encodeTheme(ThemeMode mode) => switch (mode) {
-        ThemeMode.light => 'light',
-        ThemeMode.dark => 'dark',
-        ThemeMode.system => 'system',
-      };
+    ThemeMode.light => 'light',
+    ThemeMode.dark => 'dark',
+    ThemeMode.system => 'system',
+  };
 
   Future<void> setThemeMode(ThemeMode mode) async {
     await _prefs.setThemeMode(_encodeTheme(mode));

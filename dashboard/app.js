@@ -74,6 +74,8 @@ function normalise(id, d) {
   const popp = d.popp && typeof d.popp === "object" ? d.popp : null;
   let proof = "none";
   if (popp) proof = popp.verdict === "PASS" ? (popp.simulated ? "simulated" : "pass") : "fail";
+  else if (d.weight_source === "MANUAL") proof = "manual";
+  const estimate = d.weight_estimate && typeof d.weight_estimate === "object" ? d.weight_estimate : null;
 
   return {
     id: d.client_id || id,
@@ -94,6 +96,7 @@ function normalise(id, d) {
     status,
     popp,
     proof,
+    estimate,
     model: d.model_version || d.model || null,
     appVersion: d.app_version || null,
     inferenceMs: d.inference_ms ?? null,
@@ -129,7 +132,7 @@ const SORTERS = {
   credits: (r) => r.credits,
   aiConf: (r) => r.aiConf ?? -1,
   check: (r) => ({ review: 0, ai: 1, legacy: 2 }[r.check]),
-  proof: (r) => ({ fail: 0, none: 1, simulated: 2, pass: 3 }[r.proof]),
+  proof: (r) => ({ fail: 0, none: 1, manual: 2, simulated: 3, pass: 4 }[r.proof]),
 };
 
 // ---------------------------------------------------------------- render
@@ -312,6 +315,7 @@ function proofBadge(p) {
   if (p === "pass") return `<span class="badge ai">${ICONS.ai}Weight matched</span>`;
   if (p === "simulated") return `<span class="badge legacy">${ICONS.ai}Simulated scale</span>`;
   if (p === "fail") return `<span class="badge fail">${ICONS.fail}Failed</span>`;
+  if (p === "manual") return `<span class="badge legacy">${ICONS.legacy}Entered by hand</span>`;
   return `<span class="badge legacy">${ICONS.legacy}No proof stored</span>`;
 }
 
@@ -412,6 +416,16 @@ function openDrawer(docId) {
         <dt>Weight added</dt><dd class="mono">${num(p.settleDeltaKg).toFixed(3)} kg</dd>
         <dt>Readings hashed</dt><dd class="mono">${num(p.sampleCount)}</dd>
         <dt>Hash chain</dt><dd class="hash">${esc(p.sampleHashChain || "—")}</dd>
+      </dl></section>`);
+  } else if (r.proof === "manual") {
+    const e = r.estimate;
+    const est = e
+      ? `<dt>Suggested</dt><dd class="mono">${num(e.item_count)} × ${Math.round(num(e.unit_kg) * 1000)} g = ${num(e.estimate_kg).toFixed(3)} kg</dd>`
+      : "";
+    sections.push(`<section class="d-section"><h3>Weight</h3>${proofBadge("manual")}
+      <p class="verdict-line" style="margin-top:10px">The operator typed this weight. No scale was connected, so there is no scale proof.</p>
+      <dl class="kv" style="margin-top:14px">
+        <dt>Weight entered</dt><dd class="mono">${r.weight.toFixed(3)} kg</dd>${est}
       </dl></section>`);
   } else {
     sections.push(`<section class="d-section"><h3>Scale proof</h3>${proofBadge("none")}<p class="verdict-line muted" style="margin-top:10px">No physical-presence proof was stored with this record.</p></section>`);

@@ -33,16 +33,21 @@ class PreferencesService {
 
   // --- Model accuracy toggle (multi-frame averaging) ------------------------
   bool get highAccuracyMode => _prefs.getBool(_kHighAccuracy) ?? true;
-  Future<void> setHighAccuracyMode(bool v) =>
-      _prefs.setBool(_kHighAccuracy, v);
+  Future<void> setHighAccuracyMode(bool v) => _prefs.setBool(_kHighAccuracy, v);
 
-  // --- Weight-sensor mode ('simulated' | 'ble') -----------------------------
-  /// Defaults to 'simulated' so the app is fully usable with no hardware.
-  /// Switch to 'ble' once a physical PolyMint node is available.
-  String get sensorMode => _prefs.getString(_kSensorMode) ?? 'simulated';
+  // --- Weight source ('manual' | 'simulated' | 'ble') -----------------------
+  /// Defaults to 'manual': the operator types the batch weight, so the app is
+  /// fully usable with no hardware. 'simulated' replays a scale for demos and
+  /// 'ble' reads the PolyMint weight sensor.
+  String get sensorMode {
+    final m = _prefs.getString(_kSensorMode);
+    return const ['manual', 'simulated', 'ble'].contains(m) ? m! : 'manual';
+  }
+
   Future<void> setSensorMode(String mode) =>
       _prefs.setString(_kSensorMode, mode);
-  bool get useSimulatedSensor => sensorMode != 'ble';
+  bool get manualWeight => sensorMode == 'manual';
+  bool get useSimulatedSensor => sensorMode == 'simulated';
 
   // --- Identity -------------------------------------------------------------
   /// Stable anonymous id generated once per install. Ties transactions to a
@@ -69,8 +74,11 @@ class PreferencesService {
 
   /// Bind a signed-in account so the rest of the app (which reads
   /// userId/displayName) is keyed by the real identity.
-  Future<void> bindIdentity(
-      {required String uid, String? name, String? photo}) async {
+  Future<void> bindIdentity({
+    required String uid,
+    String? name,
+    String? photo,
+  }) async {
     await _prefs.setString(_kUserId, uid);
     if (name != null && name.trim().isNotEmpty) {
       await setDisplayName(name);

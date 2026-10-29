@@ -35,9 +35,12 @@ class SettingsScreen extends StatelessWidget {
                   padding: EdgeInsets.zero,
                   child: KeyValueRow(
                     label: 'Display name',
-                    value: Text(state.displayName,
-                        style: AppType.monoBody
-                            .copyWith(color: scheme.onSurfaceVariant)),
+                    value: Text(
+                      state.displayName,
+                      style: AppType.monoBody.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
                     onTap: () => _editName(context, state.displayName),
                   ),
                 ),
@@ -53,24 +56,30 @@ class SettingsScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       SegmentedToggle<String>(
                         options: const [
+                          ('manual', 'Manual'),
                           ('simulated', 'Simulated'),
                           ('ble', 'Sensor'),
                         ],
-                        selected: state.sensorMode == 'ble'
-                            ? 'ble'
-                            : 'simulated',
+                        selected: state.sensorMode,
                         onChanged: (m) =>
                             context.read<SettingsCubit>().setSensorMode(m),
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        state.sensorMode == 'ble'
-                            ? 'Connects to a PolyMint weight sensor over '
-                                'Bluetooth when you scan.'
-                            : 'No hardware needed — the app fills in a realistic '
-                                'weight so you can try the full flow.',
-                        style: AppType.caption
-                            .copyWith(color: scheme.onSurfaceVariant),
+                        switch (state.sensorMode) {
+                          'ble' =>
+                            'Connects to a PolyMint weight sensor over '
+                                'Bluetooth when you scan.',
+                          'simulated' =>
+                            'Demo mode: a simulated scale supplies '
+                                'the weight so you can try the scale check.',
+                          _ =>
+                            'Type the batch weight after each photo. The app '
+                                'suggests one from the material and item count.',
+                        },
+                        style: AppType.caption.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -93,9 +102,12 @@ class SettingsScreen extends StatelessWidget {
                       const RowDivider(),
                       KeyValueRow(
                         label: 'Only auto-verify above',
-                        value: Text('85%',
-                            style: AppType.monoBody
-                                .copyWith(color: scheme.onSurfaceVariant)),
+                        value: Text(
+                          '85%',
+                          style: AppType.monoBody.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -135,7 +147,8 @@ class SettingsScreen extends StatelessWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const ResinGuideScreen()),
+                            builder: (_) => const ResinGuideScreen(),
+                          ),
                         ),
                       ),
                       const RowDivider(),
@@ -143,9 +156,12 @@ class SettingsScreen extends StatelessWidget {
                       const RowDivider(),
                       KeyValueRow(
                         label: 'Version',
-                        value: Text('1.0.0',
-                            style: AppType.monoBody
-                                .copyWith(color: scheme.onSurfaceVariant)),
+                        value: Text(
+                          '1.0.0',
+                          style: AppType.monoBody.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -173,10 +189,13 @@ class SettingsScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, controller.text),
-              child: const Text('Save')),
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
@@ -205,7 +224,8 @@ class _AccountSection extends StatelessWidget {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (_) => const SignInScreen(allowSkip: false)),
+                  builder: (_) => const SignInScreen(allowSkip: false),
+                ),
               ),
             ),
           );
@@ -219,13 +239,19 @@ class _AccountSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(user.displayName ?? 'Signed in',
-                        style: AppType.bodyStrong
-                            .copyWith(color: scheme.onSurface)),
+                    Text(
+                      user.displayName ?? 'Signed in',
+                      style: AppType.bodyStrong.copyWith(
+                        color: scheme.onSurface,
+                      ),
+                    ),
                     if (user.email != null)
-                      Text(user.email!,
-                          style: AppType.monoSmall
-                              .copyWith(color: scheme.onSurfaceVariant)),
+                      Text(
+                        user.email!,
+                        style: AppType.monoSmall.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -258,8 +284,10 @@ class _Avatar extends StatelessWidget {
         color: scheme.onSurface,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: AppType.bodyStrong.copyWith(color: scheme.surface)),
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: AppType.bodyStrong.copyWith(color: scheme.surface),
+      ),
     );
   }
 }
@@ -269,11 +297,12 @@ class _SwitchRow extends StatelessWidget {
   final String sub;
   final bool value;
   final ValueChanged<bool> onChanged;
-  const _SwitchRow(
-      {required this.label,
-      required this.sub,
-      required this.value,
-      required this.onChanged});
+  const _SwitchRow({
+    required this.label,
+    required this.sub,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -288,9 +317,12 @@ class _SwitchRow extends StatelessWidget {
               children: [
                 Text(label, style: AppType.body),
                 const SizedBox(height: 2),
-                Text(sub,
-                    style: AppType.caption
-                        .copyWith(color: scheme.onSurfaceVariant)),
+                Text(
+                  sub,
+                  style: AppType.caption.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
@@ -322,12 +354,16 @@ class _SyncRowState extends State<_SyncRow> {
       label: 'Offline queue',
       value: _syncing
           ? const SizedBox(
-              width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
           : pending > 0
-              ? TextButton(onPressed: _sync, child: Text('Sync $pending'))
-              : Text('Synced',
-                  style: AppType.monoBody
-                      .copyWith(color: scheme.onSurfaceVariant)),
+          ? TextButton(onPressed: _sync, child: Text('Sync $pending'))
+          : Text(
+              'Synced',
+              style: AppType.monoBody.copyWith(color: scheme.onSurfaceVariant),
+            ),
     );
   }
 
@@ -338,9 +374,11 @@ class _SyncRowState extends State<_SyncRow> {
     setState(() => _syncing = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(synced > 0
-            ? 'Synced $synced batch${synced == 1 ? '' : 'es'}.'
-            : 'Nothing synced — check your connection.'),
+        content: Text(
+          synced > 0
+              ? 'Synced $synced batch${synced == 1 ? '' : 'es'}.'
+              : 'Nothing synced — check your connection.',
+        ),
       ),
     );
   }

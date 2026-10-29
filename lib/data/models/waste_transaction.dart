@@ -17,8 +17,11 @@ enum VerificationMethod {
   const VerificationMethod(this.wire);
   final String wire;
 
-  static VerificationMethod fromWire(dynamic raw) => VerificationMethod.values
-      .firstWhere((v) => v.wire == raw, orElse: () => VerificationMethod.unknown);
+  static VerificationMethod fromWire(dynamic raw) =>
+      VerificationMethod.values.firstWhere(
+        (v) => v.wire == raw,
+        orElse: () => VerificationMethod.unknown,
+      );
 }
 
 /// A recorded plastic-recovery event and the credits it minted.
@@ -50,6 +53,13 @@ class WasteTransaction extends Equatable {
   /// stored so an auditor can re-check the weighing, not just the credit.
   final Map<String, dynamic>? popp;
 
+  /// `SCALE` or `MANUAL` (see `WeightSource`); null on older records.
+  final String? weightSource;
+
+  /// For typed-in weights: the suggestion shown to the operator
+  /// (`WeightEstimate.toJson`), kept so an auditor can compare the two.
+  final Map<String, dynamic>? weightEstimate;
+
   /// True while this record still lives only in the local offline queue.
   final bool isLocalOnly;
 
@@ -71,13 +81,12 @@ class WasteTransaction extends Equatable {
     this.aiConfidence,
     this.modelVersion,
     this.popp,
+    this.weightSource,
+    this.weightEstimate,
     this.isLocalOnly = false,
   });
 
-  WasteTransaction copyWith({
-    TransactionStatus? status,
-    bool? isLocalOnly,
-  }) {
+  WasteTransaction copyWith({TransactionStatus? status, bool? isLocalOnly}) {
     return WasteTransaction(
       id: id,
       userId: userId,
@@ -96,52 +105,56 @@ class WasteTransaction extends Equatable {
       aiConfidence: aiConfidence,
       modelVersion: modelVersion,
       popp: popp,
+      weightSource: weightSource,
+      weightEstimate: weightEstimate,
       isLocalOnly: isLocalOnly ?? this.isLocalOnly,
     );
   }
 
   /// Payload for Firestore. Uses a server timestamp when writing live.
   Map<String, dynamic> toFirestore() => {
-        'user_id': userId,
-        'user_name': userName,
-        'polymer_type': polymerCode,
-        'confidence': confidence,
-        'weight_kg': weightKg,
-        'credits_minted': creditsMinted,
-        'co2_saved_kg': co2SavedKg,
-        'geolocation': lat != null && lng != null
-            ? {'lat': lat, 'lng': lng}
-            : null,
-        'status': status.name,
-        'verification': verification.wire,
-        'ai_polymer': aiPolymerCode,
-        'ai_confidence': aiConfidence,
-        'model_version': modelVersion,
-        'popp': popp,
-        'client_id': id,
-        'timestamp': FieldValue.serverTimestamp(),
-      };
+    'user_id': userId,
+    'user_name': userName,
+    'polymer_type': polymerCode,
+    'confidence': confidence,
+    'weight_kg': weightKg,
+    'credits_minted': creditsMinted,
+    'co2_saved_kg': co2SavedKg,
+    'geolocation': lat != null && lng != null ? {'lat': lat, 'lng': lng} : null,
+    'status': status.name,
+    'verification': verification.wire,
+    'ai_polymer': aiPolymerCode,
+    'ai_confidence': aiConfidence,
+    'model_version': modelVersion,
+    'popp': popp,
+    'weight_source': weightSource,
+    'weight_estimate': weightEstimate,
+    'client_id': id,
+    'timestamp': FieldValue.serverTimestamp(),
+  };
 
   /// Flat JSON for the local offline queue (no Firestore sentinels).
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'user_id': userId,
-        'user_name': userName,
-        'polymer_type': polymerCode,
-        'confidence': confidence,
-        'weight_kg': weightKg,
-        'credits_minted': creditsMinted,
-        'co2_saved_kg': co2SavedKg,
-        'lat': lat,
-        'lng': lng,
-        'timestamp': timestamp.toIso8601String(),
-        'status': status.name,
-        'verification': verification.wire,
-        'ai_polymer': aiPolymerCode,
-        'ai_confidence': aiConfidence,
-        'model_version': modelVersion,
-        'popp': popp,
-      };
+    'id': id,
+    'user_id': userId,
+    'user_name': userName,
+    'polymer_type': polymerCode,
+    'confidence': confidence,
+    'weight_kg': weightKg,
+    'credits_minted': creditsMinted,
+    'co2_saved_kg': co2SavedKg,
+    'lat': lat,
+    'lng': lng,
+    'timestamp': timestamp.toIso8601String(),
+    'status': status.name,
+    'verification': verification.wire,
+    'ai_polymer': aiPolymerCode,
+    'ai_confidence': aiConfidence,
+    'model_version': modelVersion,
+    'popp': popp,
+    'weight_source': weightSource,
+    'weight_estimate': weightEstimate,
+  };
 
   factory WasteTransaction.fromJson(Map<String, dynamic> json) {
     return WasteTransaction(
@@ -156,19 +169,24 @@ class WasteTransaction extends Equatable {
       lat: (json['lat'] as num?)?.toDouble(),
       lng: (json['lng'] as num?)?.toDouble(),
       timestamp:
-          DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime(2020),
+          DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+          DateTime(2020),
       status: _statusFrom(json['status']),
       verification: VerificationMethod.fromWire(json['verification']),
       aiPolymerCode: json['ai_polymer'] as String?,
       aiConfidence: (json['ai_confidence'] as num?)?.toDouble(),
       modelVersion: json['model_version'] as String?,
       popp: (json['popp'] as Map?)?.cast<String, dynamic>(),
+      weightSource: json['weight_source'] as String?,
+      weightEstimate: (json['weight_estimate'] as Map?)
+          ?.cast<String, dynamic>(),
       isLocalOnly: true,
     );
   }
 
   factory WasteTransaction.fromFirestore(
-      DocumentSnapshot<Map<String, dynamic>> doc) {
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
     final data = doc.data() ?? {};
     final geo = data['geolocation'] as Map<String, dynamic>?;
     final ts = data['timestamp'];
@@ -190,6 +208,9 @@ class WasteTransaction extends Equatable {
       aiConfidence: (data['ai_confidence'] as num?)?.toDouble(),
       modelVersion: data['model_version'] as String?,
       popp: (data['popp'] as Map?)?.cast<String, dynamic>(),
+      weightSource: data['weight_source'] as String?,
+      weightEstimate: (data['weight_estimate'] as Map?)
+          ?.cast<String, dynamic>(),
     );
   }
 

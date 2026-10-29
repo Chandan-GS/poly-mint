@@ -418,5 +418,63 @@
   },
   "client_id": "preview-0013",
   "demo_seed": "preview"
+ },
+ {
+  "user_id": "preview-14",
+  "user_name": "Preview DWCC Ward 150",
+  "status": "verified",
+  "model_version": "polymer7-v2-cal1",
+  "popp": null,
+  "demo_seed": "preview",
+  "weight_source": "MANUAL",
+  "timestamp": "2026-10-28T10:20:00+00:00",
+  "polymer_type": "1-PET",
+  "confidence": 0.97,
+  "weight_kg": 1.04,
+  "credits_minted": 1.56,
+  "co2_saved_kg": 2.29,
+  "geolocation": {
+   "lat": 12.9043,
+   "lng": 77.6122
+  },
+  "verification": "AI_VERIFIED",
+  "ai_polymer": "1-PET",
+  "ai_confidence": 0.97,
+  "client_id": "preview-0014",
+  "weight_estimate": {
+   "polymer": "1-PET",
+   "item_count": 40,
+   "unit_kg": 0.025,
+   "estimate_kg": 1.0
+  }
+ },
+ {
+  "user_id": "preview-15",
+  "user_name": "Preview DWCC Ward 150",
+  "status": "verified",
+  "model_version": "polymer7-v2-cal1",
+  "popp": null,
+  "demo_seed": "preview",
+  "weight_source": "MANUAL",
+  "timestamp": "2026-10-28T11:05:00+00:00",
+  "polymer_type": "4-LDPE",
+  "confidence": 0.64,
+  "weight_kg": 0.35,
+  "credits_minted": 0.28,
+  "co2_saved_kg": 0.6,
+  "geolocation": {
+   "lat": 12.9051,
+   "lng": 77.611
+  },
+  "verification": "MANUAL_REVIEW",
+  "ai_polymer": "4-LDPE",
+  "ai_confidence": 0.64,
+  "client_id": "preview-0015",
+  "weight_estimate": {
+   "polymer": "4-LDPE",
+   "item_count": 50,
+   "unit_kg": 0.008,
+   "estimate_kg": 0.4
+  }
  }
 ]

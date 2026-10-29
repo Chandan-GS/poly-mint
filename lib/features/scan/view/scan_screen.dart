@@ -10,6 +10,7 @@ import '../../../core/theme/app_type.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../../../data/services/ml_service.dart';
 import '../../../data/services/popp_engine.dart';
+import '../../../data/services/preferences_service.dart';
 import '../../../data/services/weight_sensor.dart';
 import '../../../main.dart';
 import '../../result/view/result_screen.dart';
@@ -23,7 +24,11 @@ class ScanScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ScanCubit(sl<MlService>(), sl<WeightSensor>()),
+      // Manual weight entry needs no scale, so no sensor is created.
+      create: (_) => ScanCubit(
+        sl<MlService>(),
+        sl<PreferencesService>().manualWeight ? null : sl<WeightSensor>(),
+      ),
       child: const _ScanView(),
     );
   }
@@ -88,8 +93,9 @@ class _ScanViewState extends State<_ScanView> with WidgetsBindingObserver {
       final file = await c.takePicture();
       frames.add(await File(file.path).readAsBytes());
     } catch (_) {
-      messenger
-          .showSnackBar(const SnackBar(content: Text('Could not capture image.')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not capture image.')),
+      );
       return;
     }
     if (!mounted) return;
@@ -108,20 +114,19 @@ class _ScanViewState extends State<_ScanView> with WidgetsBindingObserver {
     return BlocListener<ScanCubit, ScanState>(
       listenWhen: (a, b) => a.phase != b.phase,
       listener: (context, state) async {
-        if (state.phase == ScanPhase.success &&
-            state.result != null &&
-            state.proof != null) {
+        if (state.phase == ScanPhase.success && state.result != null) {
           await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => ResultScreen(
-                  result: state.result!, proof: state.proof!),
+              builder: (_) =>
+                  ResultScreen(result: state.result!, proof: state.proof),
             ),
           );
           if (context.mounted) context.read<ScanCubit>().reset();
         } else if (state.phase == ScanPhase.error && state.error != null) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(state.error!)));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.error!)));
           context.read<ScanCubit>().reset();
         }
       },
@@ -130,8 +135,10 @@ class _ScanViewState extends State<_ScanView> with WidgetsBindingObserver {
         body: _initFailed
             ? _CameraUnavailable()
             : _controller == null || !_controller!.value.isInitialized
-                ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                : _buildCamera(context),
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              )
+            : _buildCamera(context),
       ),
     );
   }
@@ -156,8 +163,12 @@ class _ScanViewState extends State<_ScanView> with WidgetsBindingObserver {
             child: Row(
               children: [
                 BlocBuilder<ScanCubit, ScanState>(
-                  buildWhen: (a, b) => a.simulated != b.simulated,
-                  builder: (context, s) => s.simulated
+                  buildWhen: (a, b) =>
+                      a.simulated != b.simulated ||
+                      a.manualWeight != b.manualWeight,
+                  builder: (context, s) => s.manualWeight
+                      ? _tag('◦ MANUAL WEIGHT')
+                      : s.simulated
                       ? _tag('◦ SIMULATED SENSOR')
                       : _tag('◦ SENSOR'),
                 ),
@@ -191,15 +202,14 @@ class _ScanViewState extends State<_ScanView> with WidgetsBindingObserver {
   }
 
   Widget _tag(String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.55),
-          border: Border.all(color: Colors.white24),
-          borderRadius: BorderRadius.circular(3),
-        ),
-        child: Text(text,
-            style: AppType.monoSmall.copyWith(color: Colors.white70)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.55),
+      border: Border.all(color: Colors.white24),
+      borderRadius: BorderRadius.circular(3),
+    ),
+    child: Text(text, style: AppType.monoSmall.copyWith(color: Colors.white70)),
+  );
 }
 
 /// Live weight HUD + arm state + capture button (gated until armed).
@@ -207,17 +217,23 @@ class _CaptureDock extends StatelessWidget {
   final ScanState state;
   final VoidCallback onCapture;
   final VoidCallback onSimulate;
-  const _CaptureDock(
-      {required this.state, required this.onCapture, required this.onSimulate});
+  const _CaptureDock({
+    required this.state,
+    required this.onCapture,
+    required this.onSimulate,
+  });
 
   @override
   Widget build(BuildContext context) {
     final busy = state.phase == ScanPhase.classifying;
-    final armed = state.isArmed;
+    final armed = state.canCapture;
     final (String armText, Color armColor) = switch (state.armState) {
       PoppArmState.armed => ('Armed', _accent),
       PoppArmState.settling => ('Settling…', Colors.white),
-      PoppArmState.waitingForMass => ('Place a batch on the scale', Colors.white70),
+      PoppArmState.waitingForMass => (
+        'Place a batch on the scale',
+        Colors.white70,
+      ),
       PoppArmState.idle => ('Connecting sensor…', Colors.white70),
     };
 
@@ -230,65 +246,89 @@ class _CaptureDock extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // HUD panel
-            Container(
-              padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.82),
-                border: Border.all(color: Colors.white24),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('LIVE WEIGHT',
-                                style: AppType.label
-                                    .copyWith(color: Colors.white54)),
-                            const SizedBox(height: 4),
-                            Text.rich(TextSpan(
-                              text: state.liveKg.toStringAsFixed(3),
-                              style: AppType.metricL.copyWith(color: Colors.white),
-                              children: [
+            if (state.manualWeight)
+              const _ManualWeightHint()
+            else
+              Container(
+                padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.82),
+                  border: Border.all(color: Colors.white24),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'LIVE WEIGHT',
+                                style: AppType.label.copyWith(
+                                  color: Colors.white54,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text.rich(
                                 TextSpan(
-                                    text: '  kg',
-                                    style: AppType.monoSmall
-                                        .copyWith(color: Colors.white54)),
-                              ],
-                            )),
+                                  text: state.liveKg.toStringAsFixed(3),
+                                  style: AppType.metricL.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: '  kg',
+                                      style: AppType.monoSmall.copyWith(
+                                        color: Colors.white54,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: armColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              armText,
+                              style: AppType.label.copyWith(color: armColor),
+                            ),
                           ],
                         ),
-                      ),
-                      Row(mainAxisSize: MainAxisSize.min, children: [
-                        Container(
-                            width: 7,
-                            height: 7,
-                            decoration:
-                                BoxDecoration(color: armColor, shape: BoxShape.circle)),
-                        const SizedBox(width: 6),
-                        Text(armText,
-                            style: AppType.label.copyWith(color: armColor)),
-                      ]),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(2),
-                    child: LinearProgressIndicator(
-                      value: armed ? 1 : (state.armState == PoppArmState.settling ? 0.5 : 0.06),
-                      minHeight: 4,
-                      backgroundColor: Colors.white24,
-                      color: _accent,
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(2),
+                      child: LinearProgressIndicator(
+                        value: armed
+                            ? 1
+                            : (state.armState == PoppArmState.settling
+                                  ? 0.5
+                                  : 0.06),
+                        minHeight: 4,
+                        backgroundColor: Colors.white24,
+                        color: _accent,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
             const SizedBox(height: 12),
             // capture button — enabled only when armed
             GestureDetector(
@@ -305,25 +345,62 @@ class _CaptureDock extends StatelessWidget {
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : Text(armed ? 'CAPTURE  ▸' : 'WAITING FOR STABLE WEIGHT',
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        armed ? 'CAPTURE  ▸' : 'WAITING FOR STABLE WEIGHT',
                         style: AppType.monoSmall.copyWith(
-                            color: Colors.white,
-                            fontSize: 12,
-                            letterSpacing: 1)),
+                          color: Colors.white,
+                          fontSize: 12,
+                          letterSpacing: 1,
+                        ),
+                      ),
               ),
             ),
             if (state.simulated) ...[
               const SizedBox(height: 8),
               TextButton(
                 onPressed: onSimulate,
-                child: Text('↻ simulate a new batch',
-                    style: AppType.monoSmall.copyWith(color: Colors.white70)),
+                child: Text(
+                  '↻ simulate a new batch',
+                  style: AppType.monoSmall.copyWith(color: Colors.white70),
+                ),
               ),
             ],
             const SizedBox(height: 12),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Shown instead of the live-weight HUD when there is no scale.
+class _ManualWeightHint extends StatelessWidget {
+  const _ManualWeightHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.82),
+        border: Border.all(color: Colors.white24),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('WEIGHT', style: AppType.label.copyWith(color: Colors.white54)),
+          const SizedBox(height: 6),
+          Text(
+            'Photograph the sorted batch. You will enter its weight next.',
+            style: AppType.body.copyWith(color: Colors.white),
+          ),
+        ],
       ),
     );
   }
@@ -353,19 +430,31 @@ class _RejectionOverlay extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                Container(
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
                     width: 7,
                     height: 7,
                     decoration: const BoxDecoration(
-                        color: Color(0xFFE8756A), shape: BoxShape.circle)),
-                const SizedBox(width: 6),
-                Text('REJECTED',
-                    style: AppType.label.copyWith(color: const Color(0xFFE8756A))),
-              ]),
+                      color: Color(0xFFE8756A),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'REJECTED',
+                    style: AppType.label.copyWith(
+                      color: const Color(0xFFE8756A),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
-              Text('No weight on the scale',
-                  style: AppType.heading.copyWith(color: Colors.white)),
+              Text(
+                'No weight on the scale',
+                style: AppType.heading.copyWith(color: Colors.white),
+              ),
               const SizedBox(height: 8),
               Text(
                 'A photo or a video off a screen has no weight, so nothing can '
@@ -415,15 +504,34 @@ class _CornerPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     const l = 26.0;
     // corners
-    canvas.drawPath(Path()..moveTo(0, l)..lineTo(0, 0)..lineTo(l, 0), p);
     canvas.drawPath(
-        Path()..moveTo(size.width - l, 0)..lineTo(size.width, 0)..lineTo(size.width, l), p);
+      Path()
+        ..moveTo(0, l)
+        ..lineTo(0, 0)
+        ..lineTo(l, 0),
+      p,
+    );
     canvas.drawPath(
-        Path()..moveTo(0, size.height - l)..lineTo(0, size.height)..lineTo(l, size.height), p);
-    canvas.drawPath(Path()
-      ..moveTo(size.width - l, size.height)
-      ..lineTo(size.width, size.height)
-      ..lineTo(size.width, size.height - l), p);
+      Path()
+        ..moveTo(size.width - l, 0)
+        ..lineTo(size.width, 0)
+        ..lineTo(size.width, l),
+      p,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, size.height - l)
+        ..lineTo(0, size.height)
+        ..lineTo(l, size.height),
+      p,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(size.width - l, size.height)
+        ..lineTo(size.width, size.height)
+        ..lineTo(size.width, size.height - l),
+      p,
+    );
   }
 
   @override
@@ -438,7 +546,8 @@ class _CameraUnavailable extends StatelessWidget {
       child: EmptyState(
         icon: Icons.no_photography_outlined,
         title: 'Camera unavailable',
-        message: 'PolyMint needs the camera to identify plastic. Enable the '
+        message:
+            'PolyMint needs the camera to identify plastic. Enable the '
             'camera permission in settings and try again.',
       ),
     );

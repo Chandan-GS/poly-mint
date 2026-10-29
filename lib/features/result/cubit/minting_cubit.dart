@@ -6,6 +6,7 @@ import '../../../data/models/classification_result.dart';
 import '../../../data/models/polymer_info.dart';
 import '../../../data/models/popp_proof.dart';
 import '../../../data/models/waste_transaction.dart';
+import '../../../data/models/weight_estimate.dart';
 import '../../../data/services/location_service.dart';
 import '../../../data/services/preferences_service.dart';
 import '../../../data/services/transaction_repository.dart';
@@ -19,14 +20,33 @@ class MintingState extends Equatable {
   /// overridden from the candidate list).
   final PolymerInfo selectedPolymer;
   final double weightKg;
+
+  /// Scale reading (bound to the photo by PoPP) or typed in by the operator.
+  final WeightSource weightSource;
+
+  /// Items in the batch, for the suggested weight when typing it in.
+  final int itemCount;
+
+  /// True once the operator has typed a weight; until then the weight follows
+  /// the suggestion as the material or item count changes.
+  final bool weightEdited;
   final String? error;
 
   const MintingState({
     required this.status,
     required this.selectedPolymer,
     required this.weightKg,
+    this.weightSource = WeightSource.scale,
+    this.itemCount = 1,
+    this.weightEdited = false,
     this.error,
   });
+
+  bool get isManualWeight => weightSource == WeightSource.manual;
+
+  /// Suggested weight: [itemCount] typical items of the selected material.
+  WeightEstimate get estimate =>
+      WeightEstimate.of(selectedPolymer.code, itemCount);
 
   double get creditsPreview => weightKg * selectedPolymer.creditRate;
 
@@ -34,30 +54,50 @@ class MintingState extends Equatable {
   VerificationMethod verificationFor(ClassificationResult result) =>
       verificationOf(result, selectedPolymer);
   double get co2Preview => weightKg * selectedPolymer.co2SavedPerKg;
-  bool get canMint => weightKg > 0 && status != MintingStatus.minting;
+  bool get canMint =>
+      weightKg > 0 && weightKg < maxWeightKg && status != MintingStatus.minting;
 
   MintingState copyWith({
     MintingStatus? status,
     PolymerInfo? selectedPolymer,
     double? weightKg,
+    WeightSource? weightSource,
+    int? itemCount,
+    bool? weightEdited,
     String? error,
   }) {
     return MintingState(
       status: status ?? this.status,
       selectedPolymer: selectedPolymer ?? this.selectedPolymer,
       weightKg: weightKg ?? this.weightKg,
+      weightSource: weightSource ?? this.weightSource,
+      itemCount: itemCount ?? this.itemCount,
+      weightEdited: weightEdited ?? this.weightEdited,
       error: error,
     );
   }
 
   @override
-  List<Object?> get props => [status, selectedPolymer.code, weightKg, error];
+  List<Object?> get props => [
+    status,
+    selectedPolymer.code,
+    weightKg,
+    weightSource,
+    itemCount,
+    weightEdited,
+    error,
+  ];
 }
+
+/// Upper bound the ledger rules accept for one record.
+const double maxWeightKg = 100000;
 
 /// AI-verified only when the recorded resin is the model's own pick and the
 /// model is at or above the confidence gate; everything else needs review.
 VerificationMethod verificationOf(
-    ClassificationResult result, PolymerInfo recorded) {
+  ClassificationResult result,
+  PolymerInfo recorded,
+) {
   final isAiPick = recorded.code == result.polymer.code;
   return isAiPick && result.isConfident
       ? VerificationMethod.aiVerified
@@ -74,17 +114,28 @@ class MintingCubit extends Cubit<MintingState> {
     required PreferencesService prefs,
     double weightKg = 0,
     PoppProof? proof,
-  })  : _result = result,
-        _proof = proof,
-        _repo = repo,
-        _location = location,
-        _prefs = prefs,
-        super(MintingState(
-          status: MintingStatus.editing,
-          selectedPolymer: result.polymer,
-          // Weight comes from the signed scale reading, not typed input.
-          weightKg: weightKg,
-        ));
+  }) : _result = result,
+       _proof = proof,
+       _repo = repo,
+       _location = location,
+       _prefs = prefs,
+       super(
+         proof != null
+             // Weight comes from the signed scale reading.
+             ? MintingState(
+                 status: MintingStatus.editing,
+                 selectedPolymer: result.polymer,
+                 weightKg: weightKg,
+               )
+             // No scale: start from the suggestion; the operator types the
+             // real weight.
+             : MintingState(
+                 status: MintingStatus.editing,
+                 selectedPolymer: result.polymer,
+                 weightKg: WeightEstimate.of(result.polymer.code, 1).kg,
+                 weightSource: WeightSource.manual,
+               ),
+       );
 
   final ClassificationResult _result;
   final PoppProof? _proof;
@@ -93,18 +144,65 @@ class MintingCubit extends Cubit<MintingState> {
   final PreferencesService _prefs;
 
   void selectPolymer(PolymerInfo polymer) {
-    emit(state.copyWith(selectedPolymer: polymer, status: MintingStatus.editing));
+    final next = state.copyWith(
+      selectedPolymer: polymer,
+      status: MintingStatus.editing,
+    );
+    emit(_followEstimate(next));
   }
 
+  /// Operator typed a weight: it stays as typed from now on.
   void setWeight(String raw) {
-    final w = double.tryParse(raw.trim()) ?? 0;
-    emit(state.copyWith(weightKg: w));
+    emit(
+      state.copyWith(
+        weightKg: parseWeightKg(raw),
+        weightSource: WeightSource.manual,
+        weightEdited: true,
+        status: MintingStatus.editing,
+      ),
+    );
   }
+
+  void setItemCount(int count) {
+    emit(_followEstimate(state.copyWith(itemCount: count.clamp(1, 9999))));
+  }
+
+  /// Replace the typed weight with the suggestion.
+  void useEstimate() {
+    emit(
+      state.copyWith(
+        weightKg: state.estimate.kg,
+        weightSource: WeightSource.manual,
+        weightEdited: false,
+      ),
+    );
+  }
+
+  /// Drop the scale reading and type the weight instead. The record is then
+  /// saved without the scale proof.
+  void enterWeightManually() {
+    emit(
+      state.copyWith(
+        weightKg: state.estimate.kg,
+        weightSource: WeightSource.manual,
+        weightEdited: false,
+      ),
+    );
+  }
+
+  MintingState _followEstimate(MintingState s) =>
+      s.isManualWeight && !s.weightEdited
+      ? s.copyWith(weightKg: s.estimate.kg)
+      : s;
 
   Future<void> mint() async {
-    if (state.weightKg <= 0) {
-      emit(state.copyWith(
-          status: MintingStatus.error, error: 'Enter a valid weight in kg.'));
+    if (state.weightKg <= 0 || state.weightKg >= maxWeightKg) {
+      emit(
+        state.copyWith(
+          status: MintingStatus.error,
+          error: 'Enter a valid weight in kg.',
+        ),
+      );
       return;
     }
     emit(state.copyWith(status: MintingStatus.minting));
@@ -131,21 +229,28 @@ class MintingCubit extends Cubit<MintingState> {
       aiPolymerCode: _result.polymer.code,
       aiConfidence: _result.confidence,
       modelVersion: _result.modelVersion,
-      popp: _proof?.toJson(),
+      // The scale proof only backs a weight that came from the scale.
+      popp: state.isManualWeight ? null : _proof?.toJson(),
+      weightSource: state.weightSource.wire,
+      weightEstimate: state.isManualWeight ? state.estimate.toJson() : null,
     );
 
     try {
       final syncedOnline = await _repo.mint(tx);
-      emit(state.copyWith(
-        status: syncedOnline
-            ? MintingStatus.mintedOnline
-            : MintingStatus.mintedOffline,
-      ));
+      emit(
+        state.copyWith(
+          status: syncedOnline
+              ? MintingStatus.mintedOnline
+              : MintingStatus.mintedOffline,
+        ),
+      );
     } catch (e) {
-      emit(state.copyWith(
-        status: MintingStatus.error,
-        error: 'Minting failed. Please try again.',
-      ));
+      emit(
+        state.copyWith(
+          status: MintingStatus.error,
+          error: 'Minting failed. Please try again.',
+        ),
+      );
     }
   }
 }
